@@ -1,0 +1,99 @@
+A continuación, se presenta un orden de implementación que cumple con los requisitos
+ (capa 2, ZKP, ERC-721/1155, IPFS) y además abarca el flujo principal de un sistema 
+ de “Registro Descentralizado de Propiedad Intelectual”. Se enumera desde lo esencial 
+ hasta lo más avanzado, para organizar tu TFG de forma progresiva.
+
+===============================================================================
+1. Almacenamiento Híbrido (IPFS + Blockchain)
+===============================================================================
+1.1. Subir ficheros a IPFS:
+   - Permite al usuario cargar un archivo (imagen, PDF, etc.) desde el Frontend.
+   - Obtén el CID (hash) devuelto por IPFS.
+
+1.2. Registrar ese hash en el Contrato:
+   - Guarda únicamente el CID de IPFS en el smart contract, reduciendo así los costes de gas.
+   - Esto demuestra la autoría y vinculación con el contenido real, sin saturar la cadena.
+
+1.3. Visualización en el Frontend:
+   - Muestra “ipfs://<CID>” o un enlace a un gateway (ej. https://ipfs.io/ipfs/<CID>) para abrir el archivo.
+   - Asegura la integridad del contenido pues cualquiera puede verificarlo comparando el CID.
+
+===============================================================================
+2. Uso de Estándares Interoperables (ERC-721 / ERC-1155)
+===============================================================================
+2.1. Convertir la obra en un NFT (ERC-721):
+   - Rediseña tu contrato “RegistroObras” para acuñar un token único por cada registro.
+   - Cada obra corresponde a un tokenID ERC-721 (lo que facilita su transferencia y compatibilidad).
+
+2.2. Integrar ERC-1155 si necesitas colecciones múltiples:
+   - ERC-1155 permite agrupar distintos tipos de activos digitales en un mismo contrato.
+   - Para un registro de obras individuales, ERC-721 puede ser suficiente.
+
+2.3. Funciones de Consulta:
+   - Implementa métodos para listar, consultar o filtrar las obras.
+   - Permite al usuario ver autor, fecha, CID de IPFS y cualquier otro dato relevante.
+
+===============================================================================
+3. Integración con Cadenas de Capa 2 (Rollups)
+===============================================================================
+3.1. Seleccionar la Capa 2:
+   - Ejemplos: Polygon (matic), Arbitrum, Optimism, zkSync (ZK-rollups).
+   - Verifica la disponibilidad de testnets, costes y compatibilidad con tus herramientas.
+
+3.2. Configurar y Desplegar:
+   - Añade la red L2 en tu proyecto (Hardhat, Truffle, etc.).
+   - Obtén fondos de prueba en esa L2 testnet y despliega tu contrato NFT.
+
+3.3. Probar Interoperabilidad:
+   - Algunas L2 ofrecen “bridges” para mover los activos entre la L2 y la red principal.
+   - Confirma que el sistema funcione con bajas comisiones y buen rendimiento.
+
+===============================================================================
+4. Pruebas de Conocimiento Cero (ZKP) para Privacidad
+===============================================================================
+4.1. Definir la Información Privada:
+   - Determina qué datos ocultar: autor, hash del archivo, etc.
+   - Contempla si lo que quieres es demostrar la autoría sin exponer detalles sensibles.
+
+4.2. Seleccionar el Framework ZKP:
+   - Opciones: snarkjs, zk-SNARKs, zk-STARKs, etc.
+   - Ten en cuenta que cada tecnología exige generar circuitos criptográficos adecuados.
+
+4.3. Integración y Validación:
+   - Diseña un flujo donde el usuario genera la prueba fuera de la cadena (off-chain).
+   - El smart contract verifica dicha prueba sin ver el dato, garantizando privacidad.
+
+===============================================================================
+5. Pruebas e Integración Continua (Testing / QA)
+===============================================================================
+5.1. Automatizar Tests:
+   - Usa Hardhat o Truffle para escribir pruebas en JavaScript/TypeScript.
+   - Cubre escenarios: registro de obra, transferencia de NFT, duplicados, permisos, etc.
+
+5.2. Auditoría Básica:
+   - Opcionalmente, ejecuta herramientas como Slither o MythX para detectar vulnerabilidades.
+   - Verifica patrones inseguros (overflow, reentrancy, etc.).
+
+5.3. Verificación en Exploradores:
+   - Si es posible, verifica el contrato en Etherscan, Polygonscan, Arbiscan, etc.
+   - Facilita la transparencia y confianza de la comunidad.
+
+===============================================================================
+6. Despliegue Final y Documentación
+===============================================================================
+6.1. Publicar tu DApp:
+   - Frontend: en servicios como Netlify, GitHub Pages o un VPS propio.
+   - Backend: en Heroku, Railway, AWS u otro, comunicándose con la red L2/Layer elegido.
+
+6.2. Conexión con MetaMask:
+   - Explica a los usuarios cómo agregar la testnet/mainnet de L2 (o Ethereum) a MetaMask.
+   - Informa sobre la necesidad de obtener tokens de prueba si usan una red de test.
+
+6.3. Memoria del TFG:
+   - Documenta en detalle cada decisión técnica (por qué IPFS, por qué esa capa 2, cuál ZKP...).
+   - Incluye diagramas de arquitectura, capturas y ejemplos de interacción.
+
+===============================================================================
+Conclusión
+===============================================================================
+Siguiendo este orden, cubres el registro “básico” y las secciones más avanzadas. Empezar con el almacenamiento IPFS + contrato para guardar el CID, luego migrar a NFT ERC-721, desplegarlo en una red de capa 2 para eficiencia de costes, e incorporar pruebas de conocimiento cero (ZKP) si deseas privacidad adicional. Finalmente, completa la parte de testing, auditoría y documentación para un TFG bien fundamentado.

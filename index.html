@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Registro de Obras con Subida de Imagen</title>
+</head>
+<body>
+  <h1>Registrar una Obra</h1>
+
+  <form id="registroForm">
+    <label for="autor">Autor:</label>
+    <input type="text" id="autor" name="autor" required /><br><br>
+
+    <label for="imagen">Seleccionar imagen (o archivo):</label>
+    <input type="file" id="imagen" name="imagen" accept="*/*" />
+
+    <button type="button" onclick="registrarObra()">Registrar Obra</button>
+  </form>
+
+  <button id="connectButton">Conectar MetaMask</button>
+
+  <div id="respuesta"></div> <!-- Div para mostrar mensajes -->
+
+  <script>
+    // Conectar MetaMask
+    async function conectarMetaMask() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          console.log('MetaMask conectado');
+          document.getElementById('respuesta').innerText = 'MetaMask conectado con éxito.';
+        } catch (error) {
+          console.error('Error al conectar MetaMask:', error);
+          document.getElementById('respuesta').innerText = 'Error al conectar MetaMask.';
+        }
+      } else {
+        console.log('MetaMask no está instalado');
+        document.getElementById('respuesta').innerText = 'MetaMask no está instalado.';
+      }
+    }
+    document.getElementById('connectButton').addEventListener('click', conectarMetaMask);
+
+    // Subir la obra
+    async function registrarObra() {
+      const autor = document.getElementById('autor').value;
+      const archivo = document.getElementById('imagen').files[0];
+
+      const formData = new FormData();
+      formData.append('autor', autor);
+      formData.append('miArchivo', archivo);
+
+      try {
+        const response = await fetch('http://localhost:3000/subir-archivo', {
+          method: 'POST',
+          body: formData,
+          mode: 'cors'
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al subir la obra');
+        }
+
+        const data = await response.json();
+        // data contendrá: { mensaje, linkIpfs, linkEtherscan }
+
+        // Muestra en la página el mensaje y los enlaces, sin el "cid"
+        document.getElementById('respuesta').innerHTML = `
+          <p>${data.mensaje}</p>
+          <p>
+            Enlace IPFS:
+            <a href="${data.linkIpfs}" target="_blank">${data.linkIpfs}</a>
+          </p>
+          <p>
+            Enlace Etherscan (Transacción):
+            <a href="${data.linkEtherscan}" target="_blank">${data.linkEtherscan}</a>
+          </p>
+        `;
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('respuesta').innerText = 'Error al registrar la obra.';
+      }
+    }
+  </script>
+</body>
+</html>
+

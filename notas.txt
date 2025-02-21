@@ -1,0 +1,80 @@
+1) He creado un package.json
+
+2) Instalación de dependencias que sirven como backend de mi aplicación:
+   - Express: para crear un servidor HTTP (la API que me conectará al frontend).
+   - Ethers/Web3: para interactuar con la blockchain.
+   - IPFS: para almacenar archivos de manera descentralizada.
+   - Dotenv: para gestionar variables de entorno (como claves privadas o URLs).
+   - Cors: para permitir conexiones desde un dominio diferente en el navegador.
+
+3) Configuré un servidor rápido con app.js.
+
+4) Al ejecutarlo, comprobé que el servidor funciona correctamente.
+
+5) Ahora implementé el contrato inteligente (programa en la blockchain que permite registrar una obra digital):
+   5.1. Utilicé Remix, un editor online para Solidity, el lenguaje común de Ethereum.
+   5.2. En Remix, creé el archivo RegistroObras.sol.
+   5.3. Definí cómo se guardarían los datos. El código es:
+       // SPDX-License-Identifier: MIT
+       pragma solidity ^0.8.0;
+
+       contract RegistroObras {
+           struct Obra {
+               string autor;
+               string hashContenido;
+               uint256 fechaRegistro;
+           }
+
+           mapping(uint256 => Obra) public obras;
+
+           uint256 public contadorObras = 0;
+
+           function registrarObra(string memory _autor, string memory _hashContenido) public {
+               obras[contadorObras] = Obra(_autor, _hashContenido, block.timestamp);
+               contadorObras++;
+           }
+       }
+
+   5.4. Copié el ABI del contrato a mi app.js para definir la estructura del mismo.
+   5.5. Instalé MetaMask como billetera para firmar transacciones.
+   5.6. Configuré Infura para conectar MetaMask con la blockchain y así interactuar con los contratos.
+   5.7. Empecé a usar la red de pruebas Sepolia ETH para las transacciones.
+   5.8. Me transferí ETH de Sepolia a mi cuenta de MetaMask. Así puedo costear los deploys y registros de contratos.
+   5.9. Hice el deploy del contrato en Remix. Obtuve su dirección:
+
+       [block:7191300 txIndex:4] from: 0xb69...352f4 to: RegistroObras.(constructor) value: 0 wei data: 0x608...00033 logs: 0
+       hash: 0xd5f...06b68
+       status: 0x1 (Transaction mined and execution succeed)
+       transaction hash: 0xc49556bc104c3b19c1faa9df171c9a41d09ec4cf729e6958689f9b4de7c5afd8
+       block hash: 0xd5f11919b7dd53ae0879362f5bc28b2089aae6fed535b8b20e195ead29906b68
+       block number: 7191300
+       contract address: 0x93e6e4d7ac8d6c7b7c79c00e011ec14486c81502
+       from: 0xb69f023d9c9215b3ca1be92edaeaa9b5e1e352f4
+       to: RegistroObras.(constructor)
+       gas: 449511
+       transaction cost: 444813 gas
+       input: 0x608...00033
+       decoded input: {}
+       decoded output: -
+       logs: []
+       raw logs: []
+
+   5.10. Creé un archivo .env con mi clave pública de Infura y clave privada de MetaMask. Esto me permite interactuar desde Visual Studio Code con mi cartera, firmar el contrato y realizar transacciones.
+   5.11. En app.js, corre el backend. Ahí verifico el saldo de la billetera, la cantidad de obras registradas y veo los logs de cada operación conforme registro obras.
+   5.12. En index.html, definí campos para introducir autor y hash de contenido, más un botón para conectar con MetaMask y otro para registrar la obra.
+   5.13. Al registrar la obra, se guarda correctamente en la blockchain.
+   5.14. Verifiqué tanto en el frontend como en el backend que la transacción fue exitosa.
+   5.15. Si reviso en Sepolia Etherscan, veo las transacciones registradas y confirmadas, lo cual demuestra que todo funciona.
+
+6) A continuacion voy a implementar IPFS, lo que hace es almacenar la imagen en nodos y generar un hash asociado a la imagen para guardarlo
+   en la blockchain, de esta manera se utlizan muchos menos recursos que si se guardase toda la información de la imagen en la blockchain.
+   6.1. En este caso he utilizado Pinata y he implementado Upload.js, de tal manera que la imagen se sube a pinata y a la blockchain solo se 
+        sube el CID, ahorrando con esto recursos de blockchain.
+   6.2. Usando el CID, se puede ver la imagen en pinata y accediendo a la transaccion en la blockchain en los detalles de la transaccion en input
+        data, se puede observar que los datos han sido guardados ahí.
+   6.3. Ahora quiero que cuando registres una obra, salgan ya directamente los enlaces hacia Pinata y hacia sepolia etherscan, el problema que veo 
+        es que debo hacer un test de validacion antes de que muestre los enlaces para que el usuario pueda ver que su obra esta registrada y que 
+        cuando realmente lo está y que no pueda hacer click antes.
+        
+
+
