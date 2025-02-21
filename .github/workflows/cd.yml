@@ -1,46 +1,45 @@
+# Simple workflow for deploying static content to GitHub Pages
 name: CD
 
 on:
+  # Se ejecuta cuando hay push a la rama main
   push:
-    branches: [ main ]
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  # Primer job: Validar HTML
+  # Llama al workflow 'ci.yml'
   ci:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+    uses: ./.github/workflows/ci.yml
 
-      # Ejemplo: usar un validador HTML
-      - name: HTML validator
-        uses: chabad360/html-validator-action@v1
-        with:
-          folder: './'  # Ruta donde estén tus archivos HTML
-
-  # Segundo job: Desplegar
   deploy:
-    needs: [ci]  # Esto hace que 'deploy' solo se ejecute si 'ci' tuvo éxito
+    needs: [ci]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # (Opcional) Si tu proyecto necesita build
-      - name: Set up Node
-        uses: actions/setup-node@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          node-version: 16
+          path: './src'  # Ajusta la carpeta donde está tu contenido a desplegar
 
-      - name: Instalar dependencias
-        run: npm install
-
-      - name: Compilar/Build
-        run: npm run build  # Ajusta si tu proyecto requiere build
-
-      # Desplegar a GitHub Pages con la acción de peaceiris
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build  # o dist, según tu proyecto
+        id: deployment
+        uses: actions/deploy-pages@v4
+

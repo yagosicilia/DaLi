@@ -1,26 +1,13 @@
 name: CI
-
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
+  workflow_call:
 
 jobs:
-  build:
+  html-validator:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [14, 16, 18]
-
     steps:
     - uses: actions/checkout@v3
-    - name: Configurar Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-    - name: Instalar dependencias
-      run: npm install
-    - name: Ejecutar tests
-      run: npm test
+    - name: HTML validator
+      run: docker run --rm -v ${{ github.workspace }}/src:/src ghcr.io/validator/validator:latest vnu /src/index.html
