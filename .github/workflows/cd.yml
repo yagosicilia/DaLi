@@ -1,0 +1,46 @@
+name: CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # Primer job: Validar HTML
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # Ejemplo: usar un validador HTML
+      - name: HTML validator
+        uses: chabad360/html-validator-action@v1
+        with:
+          folder: './'  # Ruta donde estén tus archivos HTML
+
+  # Segundo job: Desplegar
+  deploy:
+    needs: [ci]  # Esto hace que 'deploy' solo se ejecute si 'ci' tuvo éxito
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # (Opcional) Si tu proyecto necesita build
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Compilar/Build
+        run: npm run build  # Ajusta si tu proyecto requiere build
+
+      # Desplegar a GitHub Pages con la acción de peaceiris
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build  # o dist, según tu proyecto
