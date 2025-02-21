@@ -1,8 +1,6 @@
-# Simple workflow for deploying static content to GitHub Pages
 name: CD
 
 on:
-  # Se ejecuta cuando hay push a la rama main
   push:
     branches: ["main"]
   workflow_dispatch:
@@ -17,15 +15,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Llama al workflow 'ci.yml'
   ci:
     uses: ./.github/workflows/ci.yml
 
   deploy:
     needs: [ci]
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,8 +31,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './src'  # Ajusta la carpeta donde está tu contenido a desplegar
-
+          path: './src'
+      
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
