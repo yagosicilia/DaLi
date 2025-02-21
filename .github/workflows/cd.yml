@@ -15,11 +15,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Llama al workflow 'ci.yml' (validador HTML)
   ci:
     uses: ./.github/workflows/ci.yml
 
   deploy:
     needs: [ci]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,8 +35,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './src'
-      
+          path: './src'  # Ajusta la carpeta donde tengas tu index.html, etc.
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
