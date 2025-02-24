@@ -44,70 +44,8 @@ try {
 
 // ABI y Dirección del contrato inteligente desplegado
 console.log("Configurando el contrato...");
-const contractABI = [
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_autor",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_hashContenido",
-        "type": "string"
-      }
-    ],
-    "name": "registrarObra",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "contadorObras",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "obras",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "autor",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "hashContenido",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "fechaRegistro",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
-
-const contractAddress = "0x93e6e4d7ac8d6c7b7c79c00e011ec14486c81502"; // Cambia por la dirección de tu contrato desplegado
+const contractABI = require('./ABI.js');
+const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48"; // Cambia por la dirección de tu contrato desplegado
 console.log("Dirección del contrato:", contractAddress);
 
 // Conecta con el contrato inteligente
@@ -122,18 +60,18 @@ try {
 
 // Define la ruta para registrar una obra en la blockchain
 app.post('/registrar-obra', async (req, res) => {
-  const { autor, hashContenido } = req.body;
-  console.log("Datos recibidos en la solicitud POST:", autor, hashContenido);
+  const { tokenURI } = req.body;
+  console.log("Datos recibidos en la solicitud POST:", tokenURI);
 
   try {
     // Llama a la función registrarObra del contrato inteligente
     console.log("Intentando registrar la obra en la blockchain...");
-    const tx = await registroObrasContract.registrarObra(autor, hashContenido);
+    const tx = await registroObrasContract.registrarObra(tokenURI);
     console.log("Transacción enviada, esperando confirmación...");
     await tx.wait();  // Espera a que la transacción se complete
     console.log("Transacción confirmada");
 
-    res.json({ mensaje: `Obra registrada con éxito para el autor: ${autor}` });
+    res.json({ mensaje: `Obra registrada como NFT con éxito`, linkEtherscan: `https://sepolia.etherscan.io/tx/${tx.hash}` });
   } catch (error) {
     console.error('Error al registrar la obra:', error);
     res.status(500).json({ error: 'Error al registrar la obra en la blockchain' });
@@ -143,14 +81,16 @@ app.post('/registrar-obra', async (req, res) => {
 // Añadir más logs a la función pruebaContrato
 async function pruebaContrato() {
   try {
-    console.log("Consultando el número de obras registradas...");
-    const contador = await registroObrasContract.contadorObras();
-    console.log(`Número de obras registradas: ${contador}`);
+    console.log("Consultando el número de NFTs del propietario...");
+    const ownerAddress = wallet.address;
+    const balance = await registroObrasContract.balanceOf(ownerAddress);
+    console.log(`Número de NFTs del propietario: ${balance}`);
   } catch (error) {
     console.error('Error al interactuar con el contrato:', error);
   }
 }
 pruebaContrato();
+
 
 // Importar y usar la ruta de subida
 const uploadRoute = require('./upload.js');
@@ -159,5 +99,3 @@ app.use('/', uploadRoute);
 
 // [RESTO DE ENDPOINTS, EJ. /registrar-obra SIN ARCHIVOS, ETC.]
 console.log("Todo listo.");
-
-

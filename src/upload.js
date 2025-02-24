@@ -23,37 +23,8 @@ const provider = new ethers.JsonRpcProvider(
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 // ABI y dirección del contrato
-const contractABI = [
-  {
-    "inputs": [
-      { "internalType": "string", "name": "_autor", "type": "string" },
-      { "internalType": "string", "name": "_hashContenido", "type": "string" }
-    ],
-    "name": "registrarObra",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "contadorObras",
-    "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ],
-    "name": "obras",
-    "outputs": [
-      { "internalType": "string", "name": "autor", "type": "string" },
-      { "internalType": "string", "name": "hashContenido", "type": "string" },
-      { "internalType": "uint256", "name": "fechaRegistro", "type": "uint256" }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
-const contractAddress = "0x93e6e4d7ac8d6c7b7c79c00e011ec14486c81502";
+const contractABI = require('./ABI.js');
+const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48"; 
 const registroObrasContract = new ethers.Contract(contractAddress, contractABI, wallet);
 
 // Endpoint para subir un archivo y registrarlo
@@ -61,7 +32,8 @@ router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
   console.log("============================");
   console.log("[LOG] Iniciando '/subir-archivo' endpoint...");
 
-  let tempFilePath = null;  // Definimos fuera del try-catch para poder borrarlo si hay error
+  let tempFilePath = null;
+  let tempMetadataPath = null;
   try {
     if (!req.file) {
       console.log("[ERROR] No se recibió archivo");
@@ -81,45 +53,73 @@ router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
     // 2. Crear un ReadStream desde el archivo temporal
     const fileStream = fs.createReadStream(tempFilePath);
 
-    // 3. Subir a Pinata
+    // 3. Subir a Pinata y obtener el CID de la imagen
     console.log("[LOG] Subiendo archivo a Pinata con pinFileToIPFS...");
-    const result = await pinata.pinFileToIPFS(fileStream, {
+    const resultFile = await pinata.pinFileToIPFS(fileStream, {
       pinataMetadata: { name: fileName }
     });
-    console.log("[LOG] Resultado de Pinata:", result);
+    console.log("[LOG] Resultado de Pinata:", resultFile);
 
-    const cid = result.IpfsHash;
-    console.log("[LOG] CID obtenido de Pinata:", cid);
+    const fileCID = resultFile.IpfsHash;
+    console.log("[LOG] CID obtenido de Pinata:", fileCID);
 
-    // 4. Llamar al contrato
+    // 4. Crear JSON de metadatos (incluye el enlace a la imagen)
     const { autor } = req.body;
-    console.log("[LOG] Registrando en la blockchain -> Autor:", autor, "| CID:", cid);
+    const metadata = {
+      name: `Obra de ${autor}`,
+      description: `Obra registrada por ${autor}`,
+      image: `https://ipfs.io/ipfs/${fileCID}`
+    };
 
-    // Enviamos la transacción
-    const tx = await registroObrasContract.registrarObra(autor, cid);
+    const metadataJSON = JSON.stringify(metadata);
+    const metadataFileName = fileName + ".json";
+    tempMetadataPath = path.join(os.tmpdir(), metadataFileName);
+    fs.writeFileSync(tempMetadataPath, metadataJSON);
+
+    // 5. Subir los metadatos a Pinata y obtener el CID del JSON
+    const metadataStream = fs.createReadStream(tempMetadataPath);
+    const resultMetadata = await pinata.pinFileToIPFS(metadataStream, {
+      pinataMetadata: { name: metadataFileName }
+    });
+    const metadataCID = resultMetadata.IpfsHash;
+    const tokenURI = `https://ipfs.io/ipfs/${metadataCID}`;
+    console.log("[LOG] Token URI generado:", tokenURI);
+
+    // 6. Registrar el NFT en la blockchain (llamada a registrarObra en el contrato ERC-721)
+    console.log("[LOG] Registrando NFT en la blockchain...");
+
+    // Pasar el tokenURI directamente como un string
+    const tx = await registroObrasContract.registrarObra(tokenURI);
     console.log("[LOG] Transacción enviada, esperando confirmación...");
 
     // Esperamos la confirmación (1 bloque)
     const receipt = await tx.wait();
     console.log("[LOG] Transacción confirmada!");
 
+    // Capturamos el Token ID del evento
+    const tokenId = receipt.logs[0].topics[3];
+    console.log("[LOG] Token ID generado:", tokenId);
+
     // De la transacción, guardamos el 'transactionHash' para el link
-    const txHash = receipt.hash;
+    const txHash = tx.hash;
 
-    // 5. Borramos archivo temporal
-    console.log("[LOG] Borrando archivo temporal...");
+    // 7. Borramos archivos temporales
+    console.log("[LOG] Borrando archivos temporales...");
     fs.unlinkSync(tempFilePath);
+    fs.unlinkSync(tempMetadataPath);
 
-    // 6. Respuesta final
-    // Devolvemos mensaje + link IPFS + link Etherscan
+    // 8. Respuesta final
     res.json({
-      mensaje: `Obra registrada con éxito para el autor: ${autor}`,
-      linkIpfs: `https://ipfs.io/ipfs/${cid}`,
+      mensaje: `Obra registrada como NFT con éxito para el autor: ${autor}`,
+      tokenId: parseInt(tokenId, 16),  // Convertimos el tokenId de hexadecimal a decimal
+      linkIpfs: tokenURI,
       linkEtherscan: `https://sepolia.etherscan.io/tx/${txHash}`
     });
 
     console.log("[LOG] Respuesta enviada. Proceso completado.");
     console.log("============================");
+
+
 
   } catch (error) {
     console.error('[ERROR] Error al subir archivo y/o registrar en la blockchain:', error);
@@ -128,8 +128,11 @@ router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
     if (tempFilePath) {
       try { fs.unlinkSync(tempFilePath); } catch {}
     }
+    if (tempMetadataPath) {
+      try { fs.unlinkSync(tempMetadataPath); } catch {}
+    }
 
-    res.status(500).json({ error: 'Error al subir archivo y registrar la obra' });
+    res.status(500).json({ error: 'Error al subir archivo y registrar la obra como NFT' });
   }
 });
 

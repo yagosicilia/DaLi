@@ -75,6 +75,21 @@
    6.3. Ahora quiero que cuando registres una obra, salgan ya directamente los enlaces hacia Pinata y hacia sepolia etherscan, el problema que veo 
         es que debo hacer un test de validacion antes de que muestre los enlaces para que el usuario pueda ver que su obra esta registrada y que 
         cuando realmente lo está y que no pueda hacer click antes.
+7) He configurado GitHub para subirlo todo y tenerlo guardado además he creado CI/CD, me los ha pasado. 
         
+
+
+status	0x1 Transaction mined and execution succeed
+transaction hash	0x58b70f4cbda070962e9f2894d70ab5ff668a75b8992d22c3e12d2a16ac594bf9
+block hash	0x2c7d5631fc637a176dec81788c14012823b69b22cfd635f6baeb91b506253c75
+block number	7756422
+contract address	0xc4446571ad11804b84305e42d3a79098b1cf1f48
+from	0xb69f023d9c9215b3ca1be92edaeaa9b5e1e352f4
+to	RegistroObrasNFT.(constructor)
+gas	2042793 gas
+transaction cost	2025550 gas 
+input	0x608...a0033
+
+
 
 

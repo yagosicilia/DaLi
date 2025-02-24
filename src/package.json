@@ -4,13 +4,14 @@
   "description": "Conexión E2E página y blockchain",
   "main": "index.js",
   "scripts": {
-  "test": "echo \"Tests OK\"",
-  "build": "echo \"No build step defined\""
+    "test": "echo \"Tests OK\"",
+    "build": "echo \"No build step defined\""
   },
   "author": "yago",
   "license": "ISC",
   "dependencies": {
     "@ethersproject/providers": "^5.7.2",
+    "@openzeppelin/contracts": "^5.2.0",
     "@pinata/sdk": "^1.1.26",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
