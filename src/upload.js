@@ -1,33 +1,41 @@
 // upload.js
+// ----------
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import express from 'express';
+import multer from 'multer';
+import { ethers } from 'ethers';
+import pinataSDK from '@pinata/sdk';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const express = require('express');
-const multer = require('multer');
-const { ethers } = require('ethers');
-const pinataSDK = require('@pinata/sdk');
 
+// Router de Express en ESM
 const router = express.Router();
 const upload = multer();
 
+// 1) Configuras el provider y la wallet (lee variables de entorno)
+const provider = new ethers.JsonRpcProvider(
+  `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`
+);
+
+
+
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+// 2) ABI y dirección del contrato
+import contractABI from './ABI.js';
+const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48";
+const registroObrasContract = new ethers.Contract(contractAddress, contractABI, wallet);
+
+// 3) Inicializas Pinata
 const pinata = pinataSDK(
   process.env.PINATA_API_KEY,
   process.env.PINATA_API_SECRET
 );
 
-// Configuras el provider y la wallet
-const provider = new ethers.JsonRpcProvider(
-  `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`
-);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-
-// ABI y dirección del contrato
-const contractABI = require('./ABI.js');
-const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48"; 
-const registroObrasContract = new ethers.Contract(contractAddress, contractABI, wallet);
-
-// Endpoint para subir un archivo y registrarlo
+// 4) Endpoint para subir un archivo y registrarlo
 router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
   console.log("============================");
   console.log("[LOG] Iniciando '/subir-archivo' endpoint...");
@@ -76,7 +84,7 @@ router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
     tempMetadataPath = path.join(os.tmpdir(), metadataFileName);
     fs.writeFileSync(tempMetadataPath, metadataJSON);
 
-    // 5. Subir los metadatos a Pinata y obtener el CID del JSON
+    // 5. Subir los metadatos a Pinata
     const metadataStream = fs.createReadStream(tempMetadataPath);
     const resultMetadata = await pinata.pinFileToIPFS(metadataStream, {
       pinataMetadata: { name: metadataFileName }
@@ -85,22 +93,20 @@ router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
     const tokenURI = `https://ipfs.io/ipfs/${metadataCID}`;
     console.log("[LOG] Token URI generado:", tokenURI);
 
-    // 6. Registrar el NFT en la blockchain (llamada a registrarObra en el contrato ERC-721)
+    // 6. Registrar el NFT en la blockchain
     console.log("[LOG] Registrando NFT en la blockchain...");
-
-    // Pasar el tokenURI directamente como un string
     const tx = await registroObrasContract.registrarObra(tokenURI);
     console.log("[LOG] Transacción enviada, esperando confirmación...");
 
-    // Esperamos la confirmación (1 bloque)
+    // Esperamos la confirmación
     const receipt = await tx.wait();
     console.log("[LOG] Transacción confirmada!");
 
-    // Capturamos el Token ID del evento
+    // Token ID del evento
     const tokenId = receipt.logs[0].topics[3];
     console.log("[LOG] Token ID generado:", tokenId);
 
-    // De la transacción, guardamos el 'transactionHash' para el link
+    // Link de Etherscan
     const txHash = tx.hash;
 
     // 7. Borramos archivos temporales
@@ -111,20 +117,16 @@ router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
     // 8. Respuesta final
     res.json({
       mensaje: `Obra registrada como NFT con éxito para el autor: ${autor}`,
-      tokenId: parseInt(tokenId, 16),  // Convertimos el tokenId de hexadecimal a decimal
+      tokenId: parseInt(tokenId, 16),
       linkIpfs: tokenURI,
       linkEtherscan: `https://sepolia.etherscan.io/tx/${txHash}`
     });
 
     console.log("[LOG] Respuesta enviada. Proceso completado.");
     console.log("============================");
-
-
-
   } catch (error) {
     console.error('[ERROR] Error al subir archivo y/o registrar en la blockchain:', error);
 
-    // Si se creó el archivo temporal, lo borramos en caso de error
     if (tempFilePath) {
       try { fs.unlinkSync(tempFilePath); } catch {}
     }
@@ -136,4 +138,5 @@ router.post('/subir-archivo', upload.single('miArchivo'), async (req, res) => {
   }
 });
 
-module.exports = router;
+// Exportar por default el router
+export default router;

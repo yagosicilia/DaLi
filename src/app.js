@@ -1,36 +1,41 @@
-require('dotenv').config();  // Importa dotenv para leer el archivo .env
-const express = require('express');  // Importa Express para gestionar el servidor
-const { ethers } = require('ethers');  // Importa ethers.js para interactuar con la blockchain
-const cors = require('cors');  // Importa CORS
+// app.js
+// -------------------
+import dotenv from 'dotenv';
+dotenv.config(); // Lee variables desde .env
 
-// Crea una aplicación Express
+import express from 'express';
+import { ethers } from 'ethers';
+import cors from 'cors';
+
+// 1) Crear y configurar la app
 const app = express();
-app.use(cors());  // Habilita CORS
-app.use(express.json());  // Middleware para procesar JSON
+app.use(cors());
+app.use(express.json());
 
-// Configura el servidor para escuchar en el puerto 3000
+// 2) Iniciar el servidor
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
 
-// Configuración del proveedor usando JsonRpcProvider para ethers 6.x
+// 3) Configurar provider y wallet (ethers 6.x)
 console.log("Configurando el proveedor...");
-const provider = new ethers.JsonRpcProvider(`https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`);
+const provider = new ethers.JsonRpcProvider(
+  `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`
+);
 console.log("Proveedor configurado con éxito");
 
-// Crea un objeto wallet con la clave privada y el proveedor configurado
+
 let wallet;
 try {
-  console.log("Intentando crear la billetera...");
+  console.log("Intentando crear la billetera en app.js...");
   wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   console.log("Billetera creada con éxito");
 
-  // Función para obtener el saldo de la billetera
   async function obtenerSaldo() {
     try {
       console.log("Consultando el saldo de la billetera...");
-      const saldo = await provider.getBalance(wallet.address);  // Usamos el proveedor y la dirección del wallet
+      const saldo = await provider.getBalance(wallet.address);
       console.log(`Saldo: ${ethers.formatEther(saldo)} ETH`);
     } catch (error) {
       console.error('Error al obtener el saldo:', error);
@@ -39,16 +44,13 @@ try {
   obtenerSaldo();
 
 } catch (error) {
-  console.error('Error al crear la billetera:', error);
+  console.error('Error al crear la billetera en app.js:', error);
 }
 
-// ABI y Dirección del contrato inteligente desplegado
-console.log("Configurando el contrato...");
-const contractABI = require('./ABI.js');
-const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48"; // Cambia por la dirección de tu contrato desplegado
-console.log("Dirección del contrato:", contractAddress);
+// 4) Importar contrato y conectarlo
+import contractABI from './ABI.js';
+const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48";
 
-// Conecta con el contrato inteligente
 let registroObrasContract;
 try {
   console.log("Intentando conectar con el contrato...");
@@ -58,27 +60,31 @@ try {
   console.error('Error al conectar con el contrato:', error);
 }
 
-// Define la ruta para registrar una obra en la blockchain
+// 5) Endpoint de ejemplo para registrar
 app.post('/registrar-obra', async (req, res) => {
   const { tokenURI } = req.body;
-  console.log("Datos recibidos en la solicitud POST:", tokenURI);
+  console.log("Datos recibidos en la solicitud POST /registrar-obra:", tokenURI);
 
   try {
-    // Llama a la función registrarObra del contrato inteligente
     console.log("Intentando registrar la obra en la blockchain...");
     const tx = await registroObrasContract.registrarObra(tokenURI);
     console.log("Transacción enviada, esperando confirmación...");
-    await tx.wait();  // Espera a que la transacción se complete
+    await tx.wait();
     console.log("Transacción confirmada");
 
-    res.json({ mensaje: `Obra registrada como NFT con éxito`, linkEtherscan: `https://sepolia.etherscan.io/tx/${tx.hash}` });
+    res.json({
+      mensaje: `Obra registrada como NFT con éxito`,
+      linkEtherscan: `https://sepolia.etherscan.io/tx/${tx.hash}`
+    });
   } catch (error) {
     console.error('Error al registrar la obra:', error);
-    res.status(500).json({ error: 'Error al registrar la obra en la blockchain' });
+    res.status(500).json({
+      error: 'Error al registrar la obra en la blockchain'
+    });
   }
 });
 
-// Añadir más logs a la función pruebaContrato
+// 6) Función de prueba del contrato
 async function pruebaContrato() {
   try {
     console.log("Consultando el número de NFTs del propietario...");
@@ -91,11 +97,8 @@ async function pruebaContrato() {
 }
 pruebaContrato();
 
-
-// Importar y usar la ruta de subida
-const uploadRoute = require('./upload.js');
-console.log("uploadRoute es:", uploadRoute);
+// 7) Importar y usar la ruta de subida
+import uploadRoute from './upload.js';
 app.use('/', uploadRoute);
 
-// [RESTO DE ENDPOINTS, EJ. /registrar-obra SIN ARCHIVOS, ETC.]
 console.log("Todo listo.");
