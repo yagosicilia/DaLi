@@ -1,0 +1,25 @@
+# Dependencias instaladas por npm o yarn
+node_modules/
+
+# Archivos de registro
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Variables de entorno sensibles
+.env
+.env.*  # Por si tienes .env.development, .env.production, etc.
+
+# Carpetas de build o distribuciones
+dist/
+build/
+
+# Informes de cobertura de tests
+coverage/
+
+# Archivos de logs o temporales
+*.log
+
+# Sistemas operativos
+.DS_Store  # macOS
+Thumbs.db  # Windows
