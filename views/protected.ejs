@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+
+
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registrar Obra</title>
+</head>
+<body>
+  <h1>Registrar una Obra como NFT</h1>
+
+  <button id="btnConectar">Conectar a Metamask</button>
+
+  <form id="formRegistro" style="margin-top: 20px;">
+    <label for="autor">Autor:</label>
+    <input type="text" id="autor" required /><br><br>
+
+    <label for="archivo">Seleccionar imagen:</label>
+    <input type="file" id="archivo" required /><br><br>
+
+    <button type="button" id="btnRegistrar">Registrar Obra</button>
+  </form>
+
+  <div id="respuesta"></div>
+
+  <!-- Usamos 'type="module"' para usar la sintaxis de import ESM -->
+  <script type="module">
+    // 1) Importar ethers desde CDN
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.min.js";
+
+    // 2) Verificamos que se cargó
+    console.log("¿Existe ethers?", ethers);
+
+    // 3) Dirección y ABI
+    const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48"; 
+    import contractABI from "/ABI.js"; // Ruta relativa desde index.html
+
+    console.log("ABI importado:", contractABI);
+
+    let metamaskConectado = false;
+
+    // Botón "Conectar a Metamask"
+    document.getElementById("btnConectar").addEventListener("click", async () => {
+      if (typeof window.ethereum === "undefined") {
+        alert("No se encontró Metamask.");
+        return;
+      }
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        metamaskConectado = true;
+        alert("MetaMask conectado con éxito.");
+      } catch (err) {
+        alert("Error al conectar Metamask: " + err.message);
+      }
+    });
+
+    // Botón "Registrar Obra"
+    document.getElementById("btnRegistrar").addEventListener("click", async () => {
+      const autor = document.getElementById("autor").value;
+      const file = document.getElementById("archivo").files[0];
+      if (!autor || !file) {
+        alert("Completa los campos: autor y archivo.");
+        return;
+      }
+
+      document.getElementById("respuesta").innerText =
+        "Subiendo archivo a IPFS, espera...";
+
+      try {
+        // Subir archivo al backend
+        const formData = new FormData();
+        formData.append("autor", autor);
+        formData.append("miArchivo", file);
+
+        const resp = await fetch("/subir-archivo", {
+          method: "POST",
+          body: formData
+        });
+        if (!resp.ok) {
+          throw new Error("Error al subir archivo al servidor");
+        }
+        const data = await resp.json();
+        const tokenURI = data.tokenURI;
+        console.log("tokenURI recibido:", tokenURI);
+
+        // Conectar Metamask si no está conectado
+        if (!metamaskConectado) {
+          if (typeof window.ethereum === "undefined") {
+            alert("No se encontró Metamask.");
+            return;
+          }
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          metamaskConectado = true;
+        }
+
+        // Firmar transacción
+        document.getElementById("respuesta").innerText =
+          "Firmando y registrando la obra en la blockchain, espera...";
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contrato = new ethers.Contract(contractAddress, contractABI, signer);
+        const tx = await contrato.registrarObra(tokenURI);
+        console.log("Tx enviada:", tx.hash);
+
+        // Esperar confirmación
+        const receipt = await tx.wait();
+        console.log("Tx confirmada:", receipt);
+
+        // Sacar tokenId
+        let tokenId = "desconocido";
+        try {
+          tokenId = parseInt(receipt.logs[0].topics[3], 16);
+        } catch {}
+
+        // Mostrar enlaces
+        document.getElementById("respuesta").innerHTML = `
+          <h3>Obra registrada con éxito</h3>
+          <p><strong>Token ID:</strong> ${tokenId}</p>
+          <p>Enlace IPFS: <a href="${tokenURI}" target="_blank">${tokenURI}</a></p>
+          <p>Enlace Etherscan: 
+            <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank">
+              ${tx.hash}
+            </a>
+          </p>
+        `;
+      } catch (error) {
+        console.error(error);
+        document.getElementById("respuesta").innerText =
+          "Error al registrar la obra: " + error.message;
+      }
+    });
+  </script>
+</body>
+</html>

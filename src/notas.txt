@@ -88,7 +88,15 @@
         gas	2042793 gas
         transaction cost	2025550 gas 
         input	0x608...a0033
-
+9) He hecho que los contratos se realicen en metamask y no por parte de nuestro servidor para que puedan haber varios contratos
+10) Voy a hacer el login
+    10.1) Creo el respositorio
+    10.2) Me he instalado Bcrypt para para hashear la contraseña
+    10.3) Es importante usar https
+    10.4) Aunque se hashee la misma contraseña se crea un hash diferente.
+    10.5) Voy a utilizar ejs
+    10.6) voy a utlizar JWT
+    10.7) Instalacion de cookieparser. Es un midleware.
 
 estado del arte funcional casos de uso en los que se use la blockchain, contar un par de casos
 capitulo 4: costes y planificacion

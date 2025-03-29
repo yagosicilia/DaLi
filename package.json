@@ -4,7 +4,6 @@
   "description": "Conexión E2E página y blockchain",
   "main": "index.js",
   "type": "module",
- 
   "scripts": {
     "start": "node src/app.js",
     "test": "echo \"Tests OK\"",
@@ -16,12 +15,16 @@
     "@ethersproject/providers": "^5.7.2",
     "@openzeppelin/contracts": "^5.2.0",
     "@pinata/sdk": "^1.1.26",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "db-local": "^3.1.0",
     "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
     "ethers": "^6.13.4",
     "express": "^4.21.1",
     "ipfs-http-client": "^60.0.1",
+    "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "web3": "^4.15.0"
   },
