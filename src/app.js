@@ -45,7 +45,7 @@ app.post('/login', async (req,res)=>{
   const {username,password} = req.body;
   try{
     const user = await UserRepository.login(username,password);
-    const token = jwt.sign({id: user._id, username: user.username},
+    const token = jwt.sign({id: user._id, username: user.username, walletAddress: user.walletAddress},
       SECRET_JWT_KEY,
       {expiresIn: '1h'
       }); 
@@ -62,11 +62,11 @@ app.post('/login', async (req,res)=>{
 })
 
 app.post('/register', async (req,res)=>{
-  const {username,password} =req.body;
+  const {username,walletAddress,password} =req.body;
   console.log(req.body);
 
   try{
-    const id = await UserRepository.create({username,password});
+    const id = await UserRepository.create({username,walletAddress,password});
     res.send({id});
   }catch(error){
     res.status(400).send({error: error.message});
@@ -84,7 +84,7 @@ app.post('/logout',(req,res)=>{
 app.get('/protected',(req,res)=>{
   const {user} = req.session;
   if(!user) return res.status(403).send({error: 'No autorizado'});
-  res.render('protected', user);
+  res.render('protected', { username: user.username, walletAddress: user.walletAddress });
 })
 
 

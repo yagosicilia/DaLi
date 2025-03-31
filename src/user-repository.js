@@ -7,18 +7,24 @@ const{Schema} = new DBLocal({path: './db'})
 const User = Schema('User',{
     _id: {type: String, required: true},
     username: {type: String, required: true},
-    password: {type: String, required: true}
+    walletAddress: {type: String, required: false},
+    password: {type: String, required: true},
 })
 
 export class UserRepository{
-    static async create({username,password}){
+    static async create({username,walletAddress,password}){
         Validation.username(username);
+        Validation.walletAddress(walletAddress);
         Validation.password(password);
+        
 
     
         //2. Asegurarse de que el username noo existe 
         const user = User.findOne({username});
         if(user) throw new Error('El username ya existe');
+
+        const wallet = User.findOne({walletAddress});
+        if(wallet) throw new Error('La wallet ya existe');
         
         const id = crypto.randomUUID();
         const hashedPassword = await bcrypt.hashSync(password, SALT_ROUNDS); //hashsync -> bloquea el theard principal
@@ -27,7 +33,8 @@ export class UserRepository{
         User.create({
             _id : id,
             username,
-            password: hashedPassword
+            walletAddress,
+            password: hashedPassword,
         }).save();
 
         return id;
@@ -57,4 +64,8 @@ class Validation{
         if(typeof password !== 'string') throw new Error('password debe ser un string');
         if(password.length < 6) throw new Error('password debe tener al menos 6 caracteres');
     }
+    static walletAddress(walletAddress) {
+        if (typeof walletAddress !== 'string') throw new Error('wallet debe ser un string');
+        if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) throw new Error('wallet inválida');
+      }
 }

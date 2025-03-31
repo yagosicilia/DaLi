@@ -97,6 +97,9 @@
     10.5) Voy a utilizar ejs
     10.6) voy a utlizar JWT
     10.7) Instalacion de cookieparser. Es un midleware.
+11) Después he conseguido implementar de maera parcial el inicio de sesión con el registro de token
+12) Si lo hago desde otra wallet el sender es diferente y el destinaario es la direccion del contrato en este caso, siempre es la misma
+    
 
 estado del arte funcional casos de uso en los que se use la blockchain, contar un par de casos
 capitulo 4: costes y planificacion

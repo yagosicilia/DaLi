@@ -102,6 +102,9 @@
               <label for="register-username">Usuario:</label>
               <input type="text" id="register-username" name="username" required />
 
+              <label for=" register-wallet">Public ID Wallet:</label>
+              <input type="text" id="register-wallet" name="wallet" required />
+
               <label for="register-password">Contraseña:</label>
               <input type="password" id="register-password" name="password" required />
 
@@ -155,6 +158,7 @@
     registerForm?.addEventListener("submit",e => {
       e.preventDefault();
       const username = $("#register-username").value;
+      const walletAddress = $("#register-wallet").value;
       const password = $("#register-password").value;
       const confirmPassword = $("#register-confirm-password").value;
 
@@ -168,20 +172,37 @@
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, walletAddress, password }),
       })
         .then(res => {
           if (res.ok) {
-            registerSpan.innerText = "Registrando usuario...";
-            registerSpan.style.color = "green";
-            setTimeout(() => {
-              window.location.href = "/protected";
-            }, 2000);
+            return fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+          });
           } else {
             registerSpan.innerText = "Error al registrar usuario";
             registerSpan.style.color = "red";
           }
         })
+        .then(res => {
+          if (res.ok) {
+            registerSpan.innerText = "Usuario registrado y logueado correctamente";
+            registerSpan.style.color = "green";
+            setTimeout(() => {
+              window.location.href = "/protected";
+            }, 1000);
+          } else {
+            registerSpan.innerText = "Error al iniciar sesión tras el registro";
+            registerSpan.style.color = "red";
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          registerSpan.innerText = "Error en el proceso de registro o login";
+          registerSpan.style.color = "red";
+        });
     });
 
     logoutButton?.addEventListener("click", () => {
