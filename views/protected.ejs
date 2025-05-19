@@ -9,7 +9,7 @@
     body {
       font-family: sans-serif;
       margin: 20px;
-      background-color: #413e3e;
+      background-color: #ffffff;
     }
 
     nav {
@@ -40,6 +40,7 @@
 
   <nav>
     <button data-seccion="inicio">Inicio</button>
+    <button data-seccion="misnfts">Mis NFTs</button>
     <button data-seccion="subir">Subir Obra</button>
     <button data-seccion="transferir">Transferir Obra</button>
     <button data-seccion="pujar">Pujar</button>
@@ -50,6 +51,12 @@
     <section id="inicio" class="seccion activa">
       <p>Selecciona una sección del menú para comenzar.</p>
     </section>
+    <section id="misnfts" class="seccion">
+      <h2>Mis NFTs</h2>
+      <p id="misnfts-status">Pulsa el botón para cargar tus obras.</p>
+      <button id="misnfts-refrescar">Actualizar listado</button>
+      <div id="misnfts-contenedor" style="display:grid; gap:12px; margin-top:16px;"></div>
+    </section>    
 
     <section id="subir" class="seccion">
         <h2>Registrar una Obra como NFT</h2>
@@ -70,7 +77,17 @@
 
     <section id="transferir" class="seccion">
       <h2>Transferir Obra</h2>
-      <p>[Aquí puedes implementar la transferencia de NFTs]</p>
+      <form id="formTransferir">
+        <label for="transfer-tokenId">Token ID:</label><br />
+        <input type="number" id="transfer-tokenId" placeholder="Ej. 1" required /><br /><br />
+      
+        <label for="transfer-address">Destino (usuario, ENS o 0x):</label><br/>
+        <input type="text" id="transfer-address" placeholder="Rodri o 0x123…" required><br><br>
+
+      
+        <button type="button" id="btnTransferir">Transferir NFT</button>
+      </form>
+      <div id="transfer-status" style="margin-top:12px;"></div>
     </section>
 
     <section id="pujar" class="seccion">
@@ -197,6 +214,217 @@
         respuesta.innerText = "Error: " + error.message;
       }
     });
+    /* --------------------------  LÓGICA TRANSFERENCIA  -------------------------- */
+
+    const formTransferir   = document.getElementById("formTransferir");
+    const btnTransferir    = document.getElementById("btnTransferir");
+    const transferStatus   = document.getElementById("transfer-status");
+
+    // Validación de dirección con ethers.js
+    const esDireccionValida = (addr) => ethers.isAddress(addr);
+
+    btnTransferir.addEventListener("click", async () => {
+      // --- datos básicos del formulario ---
+      const tokenIdStr = document.getElementById("transfer-tokenId").value.trim();
+      const destInput  = document.getElementById("transfer-address").value.trim();
+
+      /* ── validación del Token ID ─────────────────────────────── */
+      if (!tokenIdStr || isNaN(tokenIdStr) || BigInt(tokenIdStr) < 0n) {
+        alert("Introduce un Token ID válido.");
+        return;
+      }
+      if (!metamaskConectado) { alert("Conecta MetaMask primero."); return; }
+
+      /* ── 1. Resolver la entrada a dirección ──────────────────── */
+      let destAddr;
+      if (ethers.isAddress(destInput)) {
+        destAddr = destInput;                       // dirección 0x directa
+      } else {
+        // 1) lookup en tu backend (alias BD)
+        try {
+          const resp = await fetch(`/wallet/${encodeURIComponent(destInput)}`);
+          if (resp.ok) {
+            const data = await resp.json();
+            destAddr = data.walletAddress;
+            console.log(`[📖] Alias BD → ${destAddr}`);
+          }
+        } catch { /* si falla, pasa a ENS */ }
+
+        // 2) si no está en BD ⇒ probar ENS
+        if (!destAddr) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          destAddr = await provider.resolveName(destInput);
+          if (destAddr) console.log(`[🌐] ENS resuelto → ${destAddr}`);
+        }
+
+        if (!destAddr) {            // no se resolvió
+          alert("No se pudo resolver nombre de usuario ni ENS.");
+          return;
+        }
+      }
+
+      /* ── 2. Ejecutar la transferencia ────────────────────────── */
+      try {
+        transferStatus.style.color = "black";
+        transferStatus.innerText   = "Enviando transacción… espera confirmación de MetaMask.";
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer   = await provider.getSigner();
+        const fromAddr = await signer.getAddress();
+        const contrato = new ethers.Contract(contractAddress, contractABI, signer);
+
+        const tx = await contrato.safeTransferFrom(fromAddr, destAddr, BigInt(tokenIdStr));
+        transferStatus.innerText = `Tx enviada: ${tx.hash.slice(0,10)}…\nEsperando confirmación…`;
+
+        await tx.wait();
+        transferStatus.style.color = "green";
+        transferStatus.innerHTML = `
+          ✅ Transferencia confirmada a ${destInput}.<br/>
+          <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank">Ver en Etherscan</a>
+        `;
+        // cargarMisNFTs();   // (opcional) refrescar listado
+      } catch (err) {
+        console.error(err);
+        transferStatus.style.color = "red";
+        transferStatus.innerText = "❌ Error: " + (err?.message || err);
+      }
+    });
+
+    
+    /* ============================================================= */
+    /* ===      MIS NFTs · ELEMENTOS DEL DOM (deben ir primero)   ==== */
+    /* ============================================================= */
+    const btnRefrescar   = document.getElementById("misnfts-refrescar");
+    const contenedorNFTs = document.getElementById("misnfts-contenedor");
+    const statusNFTs     = document.getElementById("misnfts-status");
+
+    /* ============================================================= */
+    /* ===  UTILIDADES GENÉRICAS (conexión y escaneo dinámico)     ==== */
+    /* ============================================================= */
+
+    /** Conecta MetaMask si no hay cuentas visibles                  */
+    async function asegurarConexion() {
+      if (!window.ethereum) throw new Error("MetaMask no detectado");
+      const cuentas = await window.ethereum.request({ method: "eth_accounts" });
+      if (cuentas.length === 0) {
+        console.log("[🔑] No había cuentas autorizadas → pidiendo acceso");
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+      } else {
+        console.log(`[🔑] Cuenta ya autorizada: ${cuentas[0]}`);
+      }
+    }
+
+    /** Encuentra el MAX tokenId existente vía búsqueda exponencial + binaria */
+    async function hallarMaxTokenId(contrato) {
+      let hi = 1n;
+      for (;;) {
+        try { await contrato.ownerOf(hi); hi <<= 1n; }   // duplica: 1,2,4,8…
+        catch { break; }
+      }
+      let lo = hi >> 1n;
+      while (lo + 1n < hi) {
+        const mid = (lo + hi) >> 1n;
+        try { await contrato.ownerOf(mid); lo = mid; }
+        catch { hi = mid; }
+      }
+      return lo;                               // último que existe
+    }
+
+    /** Escanea del 1 al maxTokenId y devuelve los que son del owner */
+    async function tokenIdsPorScan(contrato, owner) {
+      const maxId   = await hallarMaxTokenId(contrato);
+      console.log(`[🔍] Máximo tokenId hallado → ${maxId}`);
+
+      const balance = await contrato.balanceOf(owner);
+      const ids     = [];
+
+      for (let id = 1n; id <= maxId && ids.length < balance; id++) {
+        try {
+          const o = await contrato.ownerOf(id);
+          if (o.toLowerCase() === owner.toLowerCase()) ids.push(id);
+        } catch { /* token no existe o quemado */ }
+      }
+      console.log(`[✅] Escaneo completo: ${ids.length} tokens del usuario`);
+      return ids;
+    }
+
+    /* ============================================================= */
+    /* ===               FUNCIÓN PRINCIPAL DE LISTADO            ==== */
+    /* ============================================================= */
+
+    async function cargarMisNFTs() {
+      try {
+        await asegurarConexion();
+
+        statusNFTs.innerText  = "Consultando blockchain…";
+        contenedorNFTs.innerHTML = "";
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer   = await provider.getSigner();
+        const myAddr   = await signer.getAddress();
+        const contrato = new ethers.Contract(contractAddress, contractABI, provider);
+
+        console.log(`[👛] Wallet conectada: ${myAddr}`);
+
+        let tokenIds = [];
+
+        if (typeof contrato.tokenOfOwnerByIndex === "function") {
+          /* -------- Enumeración nativa (ERC721Enumerable) -------- */
+          const balance = await contrato.balanceOf(myAddr);
+          for (let i = 0n; i < balance; i++) {
+            tokenIds.push(await contrato.tokenOfOwnerByIndex(myAddr, i));
+          }
+          console.log(`[📊] tokenOfOwnerByIndex → ${tokenIds.length} tokens`);
+        } else {
+          /* -------- Escaneo dinámico sin límite previo -------- */
+          tokenIds = await tokenIdsPorScan(contrato, myAddr);
+        }
+
+        if (tokenIds.length === 0) {
+          statusNFTs.innerText = "No tienes NFTs en este contrato.";
+          return;
+        }
+
+        statusNFTs.innerText = `Encontrados ${tokenIds.length} NFTs — cargando metadatos…`;
+
+        for (const id of tokenIds) {
+          let uri = "", meta = {};
+          try {
+            uri  = await contrato.tokenURI(id);
+            meta = await fetch(uri).then(r => r.json());
+          } catch (e) {
+            console.warn(`⚠️  Metadata no accesible para token ${id}`, e);
+          }
+
+          const card = document.createElement("div");
+          card.style.cssText =
+            "border:1px solid #ddd;border-radius:8px;padding:12px;max-width:200px";
+          card.innerHTML = `
+            <img src="${meta.image || ""}" style="width:100%;border-radius:6px"/>
+            <h4>${meta.name || "Token " + id}</h4>
+            <p style="font-size:12px">ID: ${id}</p>`;
+          contenedorNFTs.appendChild(card);
+        }
+        statusNFTs.innerText = "";
+        console.log("[✅] Renderizado finalizado");
+      } catch (err) {
+        console.error("[❌] Error en cargarMisNFTs", err);
+        statusNFTs.innerText = "Error: " + err.message;
+      }
+    }
+
+    /* ============================================================= */
+    /* ===               LISTENERS DE INTERFAZ                   ==== */
+    /* ============================================================= */
+
+    btnRefrescar.addEventListener("click", cargarMisNFTs);
+    document
+      .querySelector('button[data-seccion="misnfts"]')
+      .addEventListener("click", cargarMisNFTs);
+
+
+
+
   </script>
 </body>
 </html>

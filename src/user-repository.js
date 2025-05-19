@@ -69,3 +69,6 @@ class Validation{
         if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) throw new Error('wallet inválida');
       }
 }
+
+export { User };          //  ←  ahora puede importarse en app.js
+
