@@ -99,6 +99,110 @@
     10.7) Instalacion de cookieparser. Es un midleware.
 11) Después he conseguido implementar de maera parcial el inicio de sesión con el registro de token
 12) Si lo hago desde otra wallet el sender es diferente y el destinaario es la direccion del contrato en este caso, siempre es la misma
+13) Transferencia entre usuarios de tokens
+14) Tambien he conseguido mostrar al usuario sus ETFs
+15) Ahora estoy implementando un sistema de pujas y he tenido que desplegar un contrato:
+    contract address: 0xd86fd6ce850edac6898298867fa8d6f52f251c9b
+    
+    // SPDX-License-Identifier: MIT
+        pragma solidity ^0.8.24;
+
+        import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+        import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+        /**
+        * Subasta inglesa simple:
+        *  · El vendedor fija precio inicial y duración (segundos)
+        *  · Las pujas deben superar la anterior
+        *  · En cada puja se devuelve el ETH al pujador anterior
+        *  · Al terminar cualquiera puede llamar a `finalize()`:
+        *        – si hay ofertas ⇒ NFT → ganador, ETH → vendedor
+        *        – si no hay ofertas ⇒ NFT vuelve al vendedor
+        */
+        contract EnglishAuction is ReentrancyGuard {
+            struct Lot {
+                address seller;
+                uint40  endTime;          // timestamp fin
+                address highBidder;
+                uint256 highBid;
+            }
+
+            IERC721 public immutable nft;
+            mapping(uint256 => Lot) public lots;      // tokenId ➜ estado
+
+            event AuctionCreated(uint256 indexed id, address seller, uint256 minBid, uint40 end);
+            event NewBid        (uint256 indexed id, address bidder, uint256 amount);
+            event AuctionEnded  (uint256 indexed id, address winner, uint256 amount);
+
+            constructor(address _nft) {
+                nft = IERC721(_nft);
+            }
+
+            /* ------------------------------------------------------------ */
+            /*  Crear subasta                                               */
+            /* ------------------------------------------------------------ */
+            function createAuction(
+                uint256 tokenId,
+                uint256 minBidWei,
+                uint40  durationSec
+            ) external nonReentrant {
+                require(lots[tokenId].endTime == 0, "ya en subasta");
+                require(durationSec >= 1 minutes, "duracion muy corta");
+
+                // El vendedor envía el NFT al contrato
+                nft.transferFrom(msg.sender, address(this), tokenId);
+
+                uint40 end = uint40(block.timestamp + durationSec);
+                lots[tokenId] = Lot({
+                    seller: msg.sender,
+                    endTime: end,
+                    highBidder: address(0),
+                    highBid: minBidWei
+                });
+
+                emit AuctionCreated(tokenId, msg.sender, minBidWei, end);
+            }
+
+            /* ------------------------------------------------------------ */
+            /*  Pujar                                                       */
+            /* ------------------------------------------------------------ */
+            function bid(uint256 tokenId) external payable nonReentrant {
+                Lot storage L = lots[tokenId];
+                require(L.endTime != 0,        "no subasta");
+                require(block.timestamp < L.endTime, "terminada");
+                require(msg.value > L.highBid, "puja baja");
+
+                // reembolso ofertante anterior
+                if (L.highBidder != address(0)) {
+                    payable(L.highBidder).transfer(L.highBid);
+                }
+
+                L.highBidder = msg.sender;
+                L.highBid    = msg.value;
+                emit NewBid(tokenId, msg.sender, msg.value);
+            }
+
+            /* ------------------------------------------------------------ */
+            /*  Finalizar (después de la hora fin)                          */
+            /* ------------------------------------------------------------ */
+            function finalize(uint256 tokenId) external nonReentrant {
+                Lot memory L = lots[tokenId];
+                require(L.endTime != 0,          "no subasta");
+                require(block.timestamp >= L.endTime, "aun activa");
+
+                delete lots[tokenId];            // limpia storage
+
+                if (L.highBidder == address(0)) {
+                    // Sin pujas → devuelve NFT
+                    nft.safeTransferFrom(address(this), L.seller, tokenId);
+                    emit AuctionEnded(tokenId, address(0), 0);
+                } else {
+                    nft.safeTransferFrom(address(this), L.highBidder, tokenId);
+                    payable(L.seller).transfer(L.highBid);
+                    emit AuctionEnded(tokenId, L.highBidder, L.highBid);
+                }
+            }
+        }
     
 
 estado del arte funcional casos de uso en los que se use la blockchain, contar un par de casos

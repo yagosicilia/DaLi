@@ -6,425 +6,508 @@
   <title>Dali</title>
   <link rel="stylesheet" href="/css/styles.css" />
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-      background-color: #ffffff;
-    }
-
-    nav {
-      margin-bottom: 20px;
-    }
-
-    nav button {
-      margin-right: 10px;
-      padding: 8px 16px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .seccion {
-      display: none;
-    }
-
-    .seccion.activa {
-      display: block;
-    }
-
-    input, button {
-      margin-top: 8px;
-    }
+    body{font-family:sans-serif;margin:20px;background:#fff}
+    nav{margin-bottom:20px}
+    nav button{margin-right:10px;padding:8px 16px;font-size:16px;cursor:pointer}
+    .seccion{display:none}
+    .seccion.activa{display:block}
+    input,button{margin-top:8px}
   </style>
 </head>
-<body>
 
+<body>
   <nav>
     <button data-seccion="inicio">Inicio</button>
     <button data-seccion="misnfts">Mis NFTs</button>
     <button data-seccion="subir">Subir Obra</button>
     <button data-seccion="transferir">Transferir Obra</button>
-    <button data-seccion="pujar">Pujar</button>
+    <button data-seccion="subastas">Subastas</button>
     <button id="cerrarSesion">Cerrar sesión</button>
   </nav>
 
   <main>
+    <!-- ① INICIO -->
     <section id="inicio" class="seccion activa">
       <p>Selecciona una sección del menú para comenzar.</p>
     </section>
+
+    <!-- ② MIS NFTs -->
     <section id="misnfts" class="seccion">
       <h2>Mis NFTs</h2>
       <p id="misnfts-status">Pulsa el botón para cargar tus obras.</p>
       <button id="misnfts-refrescar">Actualizar listado</button>
       <div id="misnfts-contenedor" style="display:grid; gap:12px; margin-top:16px;"></div>
-    </section>    
-
-    <section id="subir" class="seccion">
-        <h2>Registrar una Obra como NFT</h2>
-        <p>Estás registrando como: <strong><%= username %></strong></p>
-      
-        <button id="btnConectar">Conectar a Metamask</button>
-      
-        <form id="formRegistro" style="margin-top: 20px;">
-          <label for="archivo">Seleccionar imagen:</label><br>
-          <input type="file" id="archivo" required /><br><br>
-      
-          <button type="button" id="btnRegistrar">Registrar Obra</button>
-        </form>
-      
-        <div id="respuesta"></div>
     </section>
-      
 
+    <!-- ③ SUBIR -->
+    <section id="subir" class="seccion">
+      <h2>Registrar una Obra como NFT</h2>
+      <p>Estás registrando como: <strong><%= username %></strong></p>
+
+      <button id="btnConectar">Conectar a Metamask</button>
+
+      <form id="formRegistro" style="margin-top:20px">
+        <label for="archivo">Seleccionar imagen:</label><br>
+        <input type="file" id="archivo" required><br><br>
+        <button type="button" id="btnRegistrar">Registrar Obra</button>
+      </form>
+
+      <div id="respuesta"></div>
+    </section>
+
+    <!-- ④ TRANSFERIR -->
     <section id="transferir" class="seccion">
       <h2>Transferir Obra</h2>
       <form id="formTransferir">
-        <label for="transfer-tokenId">Token ID:</label><br />
-        <input type="number" id="transfer-tokenId" placeholder="Ej. 1" required /><br /><br />
-      
-        <label for="transfer-address">Destino (usuario, ENS o 0x):</label><br/>
+        <label for="transfer-tokenId">Token ID:</label><br>
+        <input type="number" id="transfer-tokenId" placeholder="Ej. 1" required><br><br>
+
+        <label for="transfer-address">Destino (usuario, ENS o 0x):</label><br>
         <input type="text" id="transfer-address" placeholder="Rodri o 0x123…" required><br><br>
 
-      
         <button type="button" id="btnTransferir">Transferir NFT</button>
       </form>
-      <div id="transfer-status" style="margin-top:12px;"></div>
+      <div id="transfer-status" style="margin-top:12px"></div>
     </section>
 
-    <section id="pujar" class="seccion">
-      <h2>Pujar por una obra</h2>
-      <p>[Aquí puedes implementar un sistema de pujas o marketplace]</p>
+    <!-- ⑤ SUBASTAS -->
+    <section id="subastas" class="seccion">
+      <h2>Subastas</h2>
+
+      <!-- Crear -->
+      <details open>
+        <summary>Crear subasta</summary>
+        <label>Token ID: <input type="number" id="auc-token" min="0"></label>
+        <label>Precio mínimo (ETH): <input type="number" id="auc-min" min="0" step="0.001"></label>
+        <label>Duración:
+          <input type="number" id="auc-h" min="0" value="0" style="width:60px"> h
+          <input type="number" id="auc-m" min="0" max="59" value="0" style="width:60px"> m
+          <input type="number" id="auc-s" min="0" max="59" value="30" style="width:60px"> s
+        </label>
+        <button id="btnCrearAuc">Crear subasta</button>
+        <p id="auc-create-status"></p>
+      </details>
+
+      <hr>
+
+      <!-- Pujar / finalizar -->
+      <details>
+        <summary>Pujar o finalizar</summary>
+        <label>Token ID: <input type="number" id="bid-token" min="0"></label>
+        <label>Tu puja (ETH): <input type="number" id="bid-amt" min="0" step="0.001"></label>
+        <button id="btnPujar">Pujar</button>
+  
+        <p id="bid-status"></p>
+      </details>
+
+      <h3 style="margin-top:2rem">Subastas activas</h3>
+      <p id="auc-status">Pulsa “Actualizar subastas” para refrescar.</p>
+      <button id="btnAucRefresh">Actualizar subastas</button>
+
+      <div id="auc-grid"
+           style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+                  gap:14px;margin-top:16px;"></div>
     </section>
   </main>
 
+  <!-- ============================== SCRIPTS ============================== -->
   <script>
-    // Navegación entre secciones
-    const secciones = document.querySelectorAll(".seccion");
-    const botones = document.querySelectorAll("nav button[data-seccion]");
+    /* ---------- Navegación entre secciones ---------- */
+    const secciones = document.querySelectorAll('.seccion');
+    document.querySelectorAll('nav button[data-seccion]')
+      .forEach(btn =>
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.seccion;
+          secciones.forEach(s => s.classList.remove('activa'));
+          document.getElementById(id).classList.add('activa');
+        })
+      );
 
-    botones.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-seccion");
-        secciones.forEach(sec => sec.classList.remove("activa"));
-        document.getElementById(id).classList.add("activa");
-      });
-    });
-
-    document.getElementById("cerrarSesion").addEventListener("click", async () => {
-      await fetch("/logout", { method: "POST" });
-      window.location.href = "/";
+    document.getElementById('cerrarSesion').addEventListener('click', async () => {
+      await fetch('/logout', { method: 'POST' });
+      window.location.href = '/';
     });
   </script>
 
-
-
-  <!-- Script de subida y registro de NFT -->
   <script type="module">
-    const autor = "<%= username %>";
-    const walletDelUsuario = "<%= walletAddress %>";
-    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.min.js";
-    import contractABI from "/ABI.js";
+    /* ==================  CONFIG ================== */
+    import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.min.js';
+    import nftABI     from '/ABI.js';
+    import auctionABI from '/AuctionABI.js';
 
-    console.log("ABI importado:", contractABI);
+    const NFT_ADDR     = '0xc4446571ad11804b84305e42d3a79098b1cf1f48';
+    const AUCTION_ADDR = '0xd86fd6ce850edac6898298867fa8d6f52f251c9b';
 
-    const contractAddress = "0xc4446571ad11804b84305e42d3a79098b1cf1f48";
-    let metamaskConectado = false;
+    const autor            = '<%= username %>';
+    const walletDelUsuario = '<%= walletAddress %>';
+    const ethToWei         = eth => ethers.parseEther(String(eth));
 
-    document.getElementById("btnConectar").addEventListener("click", async () => {
-        if (!window.ethereum) {
-            alert("MetaMask no está instalado.");
-            return;
-        }
+    let auctionInst = null;
+    let metamaskOK  = false;
 
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const cuentaConectada = accounts[0];
+    /* ---------- Helpers ---------- */
+    async function asegurarConexion () {
+      if (!window.ethereum) throw new Error('MetaMask no detectado');
+      const accs = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accs.length === 0) await window.ethereum.request({ method: 'eth_requestAccounts' });
+      metamaskOK = true;
+    }
 
-            console.log("👉 Cuenta conectada desde MetaMask:", cuentaConectada);
-            console.log("👉 Wallet registrada en servidor:", walletDelUsuario);
+    async function signerYContratos () {
+      await asegurarConexion();
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer   = await provider.getSigner();
+      const nftInst  = new ethers.Contract(NFT_ADDR, nftABI, signer);
+      if (!auctionInst)
+        auctionInst = new ethers.Contract(AUCTION_ADDR, auctionABI, signer);
+      return { signer, nftInst };
+    }
 
-            if (cuentaConectada.toLowerCase() !== walletDelUsuario.toLowerCase()) {
-                alert("⚠️ Esta cuenta de MetaMask no coincide con la registrada.");
-                return;
-            }
-
-            metamaskConectado = true;
-            alert("MetaMask conectado correctamente.");
-        } catch (err) {
-            alert("Error al conectar MetaMask: " + err.message);
-        }
-    });
-
-
-    document.getElementById("btnRegistrar").addEventListener("click", async () => {
-      const file = document.getElementById("archivo").files[0];
-      const respuesta = document.getElementById("respuesta");
-
-      if (!autor || !file) {
-        alert("Completa los campos: autor y archivo.");
-        return;
-      }
-
-      respuesta.innerText = "Subiendo archivo a IPFS, espera...";
-
+    /* ================== SUBIR / MINT ================== */
+    const btnConectar = document.getElementById('btnConectar');
+    btnConectar.addEventListener('click', async () => {
       try {
-        const formData = new FormData();
-        formData.append("autor", autor);
-        formData.append("miArchivo", file);
-
-        const resp = await fetch("/subir-archivo", {
-          method: "POST",
-          body: formData
-        });
-
-        if (!resp.ok) throw new Error("Error al subir archivo al servidor");
-
-        const data = await resp.json();
-        const tokenURI = data.tokenURI;
-
-        if (!metamaskConectado) {
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          metamaskConectado = true;
-        }
-
-        respuesta.innerText = "Firmando y registrando en la blockchain...";
-
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const contrato = new ethers.Contract(contractAddress, contractABI, signer);
-        const tx = await contrato.registrarObra(tokenURI);
-
-        const receipt = await tx.wait();
-        let tokenId = "desconocido";
-        try {
-          tokenId = parseInt(receipt.logs[0].topics[3], 16);
-        } catch {}
-
-        respuesta.innerHTML = `
-          <h3>Obra registrada con éxito</h3>
-          <p><strong>Token ID:</strong> ${tokenId}</p>
-          <p>IPFS: <a href="${tokenURI}" target="_blank">${tokenURI}</a></p>
-          <p>Etherscan: 
-            <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank">
-              ${tx.hash}
-            </a>
-          </p>
-        `;
-      } catch (error) {
-        console.error(error);
-        respuesta.innerText = "Error: " + error.message;
-      }
-    });
-    /* --------------------------  LÓGICA TRANSFERENCIA  -------------------------- */
-
-    const formTransferir   = document.getElementById("formTransferir");
-    const btnTransferir    = document.getElementById("btnTransferir");
-    const transferStatus   = document.getElementById("transfer-status");
-
-    // Validación de dirección con ethers.js
-    const esDireccionValida = (addr) => ethers.isAddress(addr);
-
-    btnTransferir.addEventListener("click", async () => {
-      // --- datos básicos del formulario ---
-      const tokenIdStr = document.getElementById("transfer-tokenId").value.trim();
-      const destInput  = document.getElementById("transfer-address").value.trim();
-
-      /* ── validación del Token ID ─────────────────────────────── */
-      if (!tokenIdStr || isNaN(tokenIdStr) || BigInt(tokenIdStr) < 0n) {
-        alert("Introduce un Token ID válido.");
-        return;
-      }
-      if (!metamaskConectado) { alert("Conecta MetaMask primero."); return; }
-
-      /* ── 1. Resolver la entrada a dirección ──────────────────── */
-      let destAddr;
-      if (ethers.isAddress(destInput)) {
-        destAddr = destInput;                       // dirección 0x directa
-      } else {
-        // 1) lookup en tu backend (alias BD)
-        try {
-          const resp = await fetch(`/wallet/${encodeURIComponent(destInput)}`);
-          if (resp.ok) {
-            const data = await resp.json();
-            destAddr = data.walletAddress;
-            console.log(`[📖] Alias BD → ${destAddr}`);
-          }
-        } catch { /* si falla, pasa a ENS */ }
-
-        // 2) si no está en BD ⇒ probar ENS
-        if (!destAddr) {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          destAddr = await provider.resolveName(destInput);
-          if (destAddr) console.log(`[🌐] ENS resuelto → ${destAddr}`);
-        }
-
-        if (!destAddr) {            // no se resolvió
-          alert("No se pudo resolver nombre de usuario ni ENS.");
+        await asegurarConexion();
+        const cuenta = (await window.ethereum.request({ method: 'eth_accounts' }))[0];
+        if (cuenta.toLowerCase() !== walletDelUsuario.toLowerCase()) {
+          alert('La cuenta conectada no coincide con la registrada.');
           return;
         }
-      }
+        alert('MetaMask conectado correctamente.');
+      } catch (e) { alert('Error MetaMask: ' + e.message); }
+    });
 
-      /* ── 2. Ejecutar la transferencia ────────────────────────── */
+    const btnRegistrar = document.getElementById('btnRegistrar');
+    const respuesta    = document.getElementById('respuesta');
+
+    btnRegistrar.addEventListener('click', async () => {
+      const file = document.getElementById('archivo').files[0];
+      if (!autor || !file) { alert('Completa autor + archivo'); return; }
+
       try {
-        transferStatus.style.color = "black";
-        transferStatus.innerText   = "Enviando transacción… espera confirmación de MetaMask.";
+        respuesta.textContent = 'Subiendo a IPFS…';
+        const fd = new FormData();
+        fd.append('autor', autor);
+        fd.append('miArchivo', file);
+        const r = await fetch('/subir-archivo', { method: 'POST', body: fd });
+        if (!r.ok) throw new Error('Upload falló');
+        const { tokenURI } = await r.json();
 
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer   = await provider.getSigner();
-        const fromAddr = await signer.getAddress();
-        const contrato = new ethers.Contract(contractAddress, contractABI, signer);
-
-        const tx = await contrato.safeTransferFrom(fromAddr, destAddr, BigInt(tokenIdStr));
-        transferStatus.innerText = `Tx enviada: ${tx.hash.slice(0,10)}…\nEsperando confirmación…`;
-
+        respuesta.textContent = 'Firmando mint…';
+        const { nftInst } = await signerYContratos();
+        const tx = await nftInst.registrarObra(tokenURI);
         await tx.wait();
-        transferStatus.style.color = "green";
-        transferStatus.innerHTML = `
-          ✅ Transferencia confirmada a ${destInput}.<br/>
-          <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank">Ver en Etherscan</a>
-        `;
-        // cargarMisNFTs();   // (opcional) refrescar listado
-      } catch (err) {
-        console.error(err);
-        transferStatus.style.color = "red";
-        transferStatus.innerText = "❌ Error: " + (err?.message || err);
+
+        respuesta.innerHTML =
+          `✅ Mint OK <a target="_blank" href="https://sepolia.etherscan.io/tx/${tx.hash}">
+             ${tx.hash.slice(0,10)}…</a>`;
+      } catch (e) {
+        console.error(e);
+        respuesta.textContent = '❌ ' + e.message;
       }
     });
 
-    
-    /* ============================================================= */
-    /* ===      MIS NFTs · ELEMENTOS DEL DOM (deben ir primero)   ==== */
-    /* ============================================================= */
-    const btnRefrescar   = document.getElementById("misnfts-refrescar");
-    const contenedorNFTs = document.getElementById("misnfts-contenedor");
-    const statusNFTs     = document.getElementById("misnfts-status");
+    /* ================== TRANSFERENCIA ================== */
+    const btnTransferir  = document.getElementById('btnTransferir');
+    const transferStatus = document.getElementById('transfer-status');
 
-    /* ============================================================= */
-    /* ===  UTILIDADES GENÉRICAS (conexión y escaneo dinámico)     ==== */
-    /* ============================================================= */
+    btnTransferir.addEventListener('click', async () => {
+      const tokenIdStr = document.getElementById('transfer-tokenId').value.trim();
+      const destInput  = document.getElementById('transfer-address').value.trim();
 
-    /** Conecta MetaMask si no hay cuentas visibles                  */
-    async function asegurarConexion() {
-      if (!window.ethereum) throw new Error("MetaMask no detectado");
-      const cuentas = await window.ethereum.request({ method: "eth_accounts" });
-      if (cuentas.length === 0) {
-        console.log("[🔑] No había cuentas autorizadas → pidiendo acceso");
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-      } else {
-        console.log(`[🔑] Cuenta ya autorizada: ${cuentas[0]}`);
+      if (!tokenIdStr || isNaN(tokenIdStr) || BigInt(tokenIdStr) < 0n) {
+        alert('Token ID inválido'); return;
+      }
+      await asegurarConexion();
+
+      /* --- resolver destino --- */
+      let destAddr = ethers.isAddress(destInput) ? destInput : null;
+      if (!destAddr) {                    // buscar alias backend
+        try {
+          const resp = await fetch(`/wallet/${encodeURIComponent(destInput)}`);
+          if (resp.ok) destAddr = (await resp.json()).walletAddress;
+        } catch {}
+      }
+      if (!destAddr) {                    // ENS
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        destAddr = await provider.resolveName(destInput);
+      }
+      if (!destAddr) { alert('No se pudo resolver el destino'); return; }
+
+      /* --- enviar --- */
+      try {
+        transferStatus.textContent = 'Enviando transacción…';
+        const { signer, nftInst } = await signerYContratos();
+        const tx = await nftInst['safeTransferFrom(address,address,uint256)'](
+          await signer.getAddress(), destAddr, BigInt(tokenIdStr)
+        );
+        await tx.wait();
+        transferStatus.innerHTML =
+          `✅ Transferido a ${destInput} (<a target="_blank"
+            href="https://sepolia.etherscan.io/tx/${tx.hash}">
+            ${tx.hash.slice(0,10)}…</a>)`;
+      } catch (e) {
+        console.error(e);
+        transferStatus.textContent = '❌ ' + (e.reason || e.message);
+      }
+    });
+
+    /* ================== SUBASTAS ================== */
+    const btnCrearAuc  = document.getElementById('btnCrearAuc');
+    const btnPujar     = document.getElementById('btnPujar');
+
+    const aucSt     = document.getElementById('auc-create-status');
+    const bidSt     = document.getElementById('bid-status');
+    const aucGrid   = document.getElementById('auc-grid');
+    const aucStatus = document.getElementById('auc-status');
+    document.getElementById('btnAucRefresh')
+            .addEventListener('click', cargarSubastas);
+
+    const tNow  = () => Math.floor(Date.now() / 1000);
+    const short = a => a.slice(0,6) + '…' + a.slice(-4);
+    const left  = ts => {
+      const s = ts - tNow();
+      if (s <= 0) return 'cerrada';
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      return `${h} h ${m} m`;
+    };
+
+    /* ---------- resolver alias (addr → nombre) ---------- */
+    const aliasCache = {};
+
+    async function aliasDe(addr) {
+      addr = addr.toLowerCase();
+      if (aliasCache[addr]) return aliasCache[addr];      // hit caché
+
+      const r = await fetch(`/alias/${addr.toLowerCase()}`); // está bien
+      if (!r.ok) return null;
+      const { username } = await r.json();
+      if (username) aliasCache[addr] = username;          // guarda solo si existe
+      return username || null;
+    }
+
+    async function cargarSubastas () {
+      try {
+        aucStatus.textContent = 'Buscando subastas en la cadena…';
+        aucGrid.innerHTML = '';
+
+        const { nftInst: nft } = await signerYContratos();
+        const auc = auctionInst;
+
+        /* ① Todos los AuctionCreated (del más nuevo al más viejo) */
+        const events = (await auc.queryFilter(auc.filters.AuctionCreated())).reverse();
+        if (events.length === 0) {
+          aucStatus.textContent = 'No hay subastas creadas todavía.';
+          return;
+        }
+
+        const vistos = new Set();                       // evita duplicados
+
+        for (const ev of events) {
+          const tokenId   = ev.args[0];
+          const minBidWei = ev.args[2];
+
+          if (vistos.has(tokenId)) continue;            // ya pintamos este NFT
+          vistos.add(tokenId);
+
+          const lot = await auc.lots(tokenId);
+          if (lot.endTime === 0n) continue;             // lote vacío
+
+          const vencida = Number(lot.endTime) < tNow();
+          if (vencida) {                                // auto-finalizar
+            try { await (await auc.finalize(tokenId)).wait(); }
+            catch {}
+            continue;
+          }
+
+          /* --------- METADATOS DEL NFT --------- */
+          let image = '', title = `Token ${tokenId}`;
+          try {
+            const uri  = await nft.tokenURI(tokenId);
+            const meta = await fetch(uri).then(r => r.json());
+            image = meta.image || '';
+            title = meta.name  || title;
+          } catch {/* silenciamos errores de tokenURI */}
+
+          /* --------- TARJETA VISUAL --------- */
+          const card = document.createElement('div');
+          card.style.cssText =
+            'border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center';
+          const nombreVend  = (await aliasDe(lot.seller))   || short(lot.seller);
+          const nombreBidder = lot.highBidder === ethers.ZeroAddress
+                ? '—'
+                : (await aliasDe(lot.highBidder)) || short(lot.highBidder);
+
+          card.innerHTML = `
+            <img src="${image}"
+                style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px">
+            <h4 style="margin:6px 0">${title}</h4>
+            <p style="font-size:13px;line-height:1.25">
+              Precio inicial: ${ethers.formatEther(minBidWei)} ETH<br>
+              Mejor puja: ${nombreBidder === '—'
+                ? '—'
+                : `${ethers.formatEther(lot.highBid)} ETH por ${nombreBidder}`}<br>
+              Vendedor: ${nombreVend}<br>
+              Termina en: ${left(Number(lot.endTime))}
+            </p>
+            <button style="width:100%;margin-top:4px"
+                    onclick="prefillBid(${tokenId})">
+              Pujar
+            </button>`;
+
+          aucGrid.appendChild(card);
+        }
+
+        aucStatus.textContent = aucGrid.childElementCount
+          ? ''
+          : 'No hay subastas activas.';
+      } catch (err) {
+        console.error(err);
+        aucStatus.textContent = '❌ ' + (err.message || err);
       }
     }
 
-    /** Encuentra el MAX tokenId existente vía búsqueda exponencial + binaria */
-    async function hallarMaxTokenId(contrato) {
+
+
+
+    window.prefillBid = id => {
+      document.getElementById('bid-token').value = id;
+      document.querySelectorAll('details')[0].open = false;
+      document.querySelectorAll('details')[1].open = true;
+    };
+
+    cargarSubastas();
+
+    /* ---------- crear subasta ---------- */
+    btnCrearAuc.addEventListener('click', async () => {
+      try {
+        const tokenId = BigInt(document.getElementById('auc-token').value);
+        const minEthStr = document.getElementById('auc-min').value.trim();
+        const h = +document.getElementById('auc-h').value;
+        const m = +document.getElementById('auc-m').value;
+        const s = +document.getElementById('auc-s').value;
+        const durSec = h*3600 + m*60 + s;
+
+        if (tokenId < 0n || durSec < 1 || !/^\d*\.?\d+$/.test(minEthStr))
+          throw new Error('Datos inválidos (comprueba duración y precio)');
+
+        const minWei = ethers.parseEther(minEthStr);
+
+        const { signer, nftInst } = await signerYContratos();
+        if (!(await nftInst.isApprovedForAll(await signer.getAddress(), AUCTION_ADDR))) {
+          aucSt.textContent = 'Aprobando contrato…';
+          await (await nftInst.setApprovalForAll(AUCTION_ADDR, true)).wait();
+        }
+
+        aucSt.textContent = 'Creando subasta…';
+        const tx = await auctionInst.createAuction(tokenId, minWei, durSec);
+        await tx.wait();
+        aucSt.innerHTML =
+          `✅ Subasta creada (<a target="_blank"
+            href="https://sepolia.etherscan.io/tx/${tx.hash}">
+            ${tx.hash.slice(0,10)}…</a>)`;
+      } catch (e) { aucSt.textContent = '❌ ' + (e.reason || e.message); }
+    });
+
+    /* ---------- pujar ---------- */
+    btnPujar.addEventListener('click', async () => {
+      try {
+        const tokenId = BigInt(document.getElementById('bid-token').value);
+        const eth     = +document.getElementById('bid-amt').value;
+        if (tokenId < 0n || eth <= 0) throw new Error('Datos inválidos');
+
+        await signerYContratos();
+        bidSt.textContent = 'Enviando puja…';
+        const tx = await auctionInst.bid(tokenId, { value: ethToWei(eth) });
+        await tx.wait();
+        bidSt.innerHTML =
+          `✅ Puja aceptada (<a target="_blank"
+            href="https://sepolia.etherscan.io/tx/${tx.hash}">
+            ${tx.hash.slice(0,10)}…</a>)`;
+      } catch (e) { bidSt.textContent = '❌ ' + (e.reason || e.message); }
+    });
+
+
+
+
+    /* ================== MIS NFTs ================== */
+    const btnRefrescar   = document.getElementById('misnfts-refrescar');
+    const contenedorNFTs = document.getElementById('misnfts-contenedor');
+    const statusNFTs     = document.getElementById('misnfts-status');
+
+    btnRefrescar.addEventListener('click', cargarMisNFTs);
+    document.querySelector('button[data-seccion="misnfts"]')
+            .addEventListener('click', cargarMisNFTs);
+
+    async function hallarMaxTokenId (contrato) {
       let hi = 1n;
-      for (;;) {
-        try { await contrato.ownerOf(hi); hi <<= 1n; }   // duplica: 1,2,4,8…
-        catch { break; }
-      }
+      while (true) { try { await contrato.ownerOf(hi); hi <<= 1n; } catch { break; } }
       let lo = hi >> 1n;
       while (lo + 1n < hi) {
         const mid = (lo + hi) >> 1n;
-        try { await contrato.ownerOf(mid); lo = mid; }
-        catch { hi = mid; }
+        try { await contrato.ownerOf(mid); lo = mid; } catch { hi = mid; }
       }
-      return lo;                               // último que existe
+      return lo;
     }
 
-    /** Escanea del 1 al maxTokenId y devuelve los que son del owner */
-    async function tokenIdsPorScan(contrato, owner) {
-      const maxId   = await hallarMaxTokenId(contrato);
-      console.log(`[🔍] Máximo tokenId hallado → ${maxId}`);
-
+    async function tokenIdsPorScan (contrato, owner) {
+      const maxId = await hallarMaxTokenId(contrato);
       const balance = await contrato.balanceOf(owner);
-      const ids     = [];
-
+      const ids = [];
       for (let id = 1n; id <= maxId && ids.length < balance; id++) {
         try {
-          const o = await contrato.ownerOf(id);
-          if (o.toLowerCase() === owner.toLowerCase()) ids.push(id);
-        } catch { /* token no existe o quemado */ }
+          if ((await contrato.ownerOf(id)).toLowerCase() === owner.toLowerCase())
+            ids.push(id);
+        } catch {}
       }
-      console.log(`[✅] Escaneo completo: ${ids.length} tokens del usuario`);
       return ids;
     }
 
-    /* ============================================================= */
-    /* ===               FUNCIÓN PRINCIPAL DE LISTADO            ==== */
-    /* ============================================================= */
-
-    async function cargarMisNFTs() {
+    async function cargarMisNFTs () {
       try {
         await asegurarConexion();
-
-        statusNFTs.innerText  = "Consultando blockchain…";
-        contenedorNFTs.innerHTML = "";
+        statusNFTs.textContent = 'Consultando blockchain…';
+        contenedorNFTs.innerHTML = '';
 
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer   = await provider.getSigner();
         const myAddr   = await signer.getAddress();
-        const contrato = new ethers.Contract(contractAddress, contractABI, provider);
+        const contrato = new ethers.Contract(NFT_ADDR, nftABI, provider);
 
-        console.log(`[👛] Wallet conectada: ${myAddr}`);
+        const ids = typeof contrato.tokenOfOwnerByIndex === 'function'
+          ? await Promise.all(
+              [...Array(Number(await contrato.balanceOf(myAddr))).keys()]
+                .map(i => contrato.tokenOfOwnerByIndex(myAddr, BigInt(i))))
+          : await tokenIdsPorScan(contrato, myAddr);
 
-        let tokenIds = [];
+        ids.sort((a, b) => (a < b ? 1 : -1));   // ordena de mayor a menor  
 
-        if (typeof contrato.tokenOfOwnerByIndex === "function") {
-          /* -------- Enumeración nativa (ERC721Enumerable) -------- */
-          const balance = await contrato.balanceOf(myAddr);
-          for (let i = 0n; i < balance; i++) {
-            tokenIds.push(await contrato.tokenOfOwnerByIndex(myAddr, i));
-          }
-          console.log(`[📊] tokenOfOwnerByIndex → ${tokenIds.length} tokens`);
-        } else {
-          /* -------- Escaneo dinámico sin límite previo -------- */
-          tokenIds = await tokenIdsPorScan(contrato, myAddr);
-        }
+        if (ids.length === 0) { statusNFTs.textContent = 'No tienes NFTs.'; return; }
 
-        if (tokenIds.length === 0) {
-          statusNFTs.innerText = "No tienes NFTs en este contrato.";
-          return;
-        }
+        statusNFTs.textContent = `Encontrados ${ids.length}. Cargando metadatos…`;
 
-        statusNFTs.innerText = `Encontrados ${tokenIds.length} NFTs — cargando metadatos…`;
-
-        for (const id of tokenIds) {
-          let uri = "", meta = {};
+        for (const id of ids) {
+          let meta = {};
           try {
-            uri  = await contrato.tokenURI(id);
+            const uri = await contrato.tokenURI(id);
             meta = await fetch(uri).then(r => r.json());
-          } catch (e) {
-            console.warn(`⚠️  Metadata no accesible para token ${id}`, e);
-          }
-
-          const card = document.createElement("div");
+          } catch {}
+          const card = document.createElement('div');
           card.style.cssText =
-            "border:1px solid #ddd;border-radius:8px;padding:12px;max-width:200px";
+            'border:1px solid #ddd;border-radius:8px;padding:12px;max-width:200px';
           card.innerHTML = `
-            <img src="${meta.image || ""}" style="width:100%;border-radius:6px"/>
-            <h4>${meta.name || "Token " + id}</h4>
+            <img src="${meta.image || ''}" style="width:100%;border-radius:6px">
+            <h4>${meta.name || 'Token ' + id}</h4>
             <p style="font-size:12px">ID: ${id}</p>`;
           contenedorNFTs.appendChild(card);
         }
-        statusNFTs.innerText = "";
-        console.log("[✅] Renderizado finalizado");
-      } catch (err) {
-        console.error("[❌] Error en cargarMisNFTs", err);
-        statusNFTs.innerText = "Error: " + err.message;
+        statusNFTs.textContent = '';
+      } catch (e) {
+        console.error(e);
+        statusNFTs.textContent = '❌ ' + e.message;
       }
     }
-
-    /* ============================================================= */
-    /* ===               LISTENERS DE INTERFAZ                   ==== */
-    /* ============================================================= */
-
-    btnRefrescar.addEventListener("click", cargarMisNFTs);
-    document
-      .querySelector('button[data-seccion="misnfts"]')
-      .addEventListener("click", cargarMisNFTs);
-
-
-
-
   </script>
 </body>
 </html>

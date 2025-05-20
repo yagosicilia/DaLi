@@ -51,6 +51,7 @@ export class UserRepository{
         const { password: _, ...publicUser } = user;
         return publicUser;
     }
+
 }
 
 class Validation{
@@ -70,5 +71,6 @@ class Validation{
       }
 }
 
-export { User };          //  ←  ahora puede importarse en app.js
+export { User };   //  ←  ahora puede importarse en app.js
+
 
