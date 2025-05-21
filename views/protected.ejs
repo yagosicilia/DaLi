@@ -22,6 +22,7 @@
     <button data-seccion="subir">Subir Obra</button>
     <button data-seccion="transferir">Transferir Obra</button>
     <button data-seccion="subastas">Subastas</button>
+    <button id="btnConectar">Conectar MetaMask</button>
     <button id="cerrarSesion">Cerrar sesión</button>
   </nav>
 
@@ -32,19 +33,22 @@
     </section>
 
     <!-- ② MIS NFTs -->
+<!-- ② MIS NFTs -->
     <section id="misnfts" class="seccion">
-      <h2>Mis NFTs</h2>
-      <p id="misnfts-status">Pulsa el botón para cargar tus obras.</p>
-      <button id="misnfts-refrescar">Actualizar listado</button>
-      <div id="misnfts-contenedor" style="display:grid; gap:12px; margin-top:16px;"></div>
+      <div style="display: flex; justify-content: flex-end; align-items: center;">
+        <button id="misnfts-refrescar" title="Recargar" class="btn-recargar">🔄</button>
+      </div>
+
+      <p id="misnfts-status" style="margin-top: 0;">&nbsp;</p>
+
+      <div id="misnfts-contenedor"
+        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top:16px;">
+      </div>
     </section>
 
     <!-- ③ SUBIR -->
     <section id="subir" class="seccion">
       <h2>Registrar una Obra como NFT</h2>
-      <p>Estás registrando como: <strong><%= username %></strong></p>
-
-      <button id="btnConectar">Conectar a Metamask</button>
 
       <form id="formRegistro" style="margin-top:20px">
         <label for="archivo">Seleccionar imagen:</label><br>
@@ -378,6 +382,7 @@
     };
 
     cargarSubastas();
+    cargarMisNFTs();
 
     /* ---------- crear subasta ---------- */
     btnCrearAuc.addEventListener('click', async () => {
@@ -437,8 +442,8 @@
     const statusNFTs     = document.getElementById('misnfts-status');
 
     btnRefrescar.addEventListener('click', cargarMisNFTs);
-    document.querySelector('button[data-seccion="misnfts"]')
-            .addEventListener('click', cargarMisNFTs);
+    //document.querySelector('button[data-seccion="misnfts"]')
+    //        .addEventListener('click', cargarMisNFTs);
 
     async function hallarMaxTokenId (contrato) {
       let hi = 1n;
@@ -494,12 +499,13 @@
             meta = await fetch(uri).then(r => r.json());
           } catch {}
           const card = document.createElement('div');
-          card.style.cssText =
-            'border:1px solid #ddd;border-radius:8px;padding:12px;max-width:200px';
           card.innerHTML = `
-            <img src="${meta.image || ''}" style="width:100%;border-radius:6px">
-            <h4>${meta.name || 'Token ' + id}</h4>
-            <p style="font-size:12px">ID: ${id}</p>`;
+            <div class="nft-img-container">
+              <span class="nft-id">ID ${id}</span>
+              <img src="${meta.image || ''}" class="nft-image"
+                  onclick="document.getElementById('modal-img').src=this.src;
+                            document.getElementById('modal').style.display='flex';">
+            </div>`;
           contenedorNFTs.appendChild(card);
         }
         statusNFTs.textContent = '';
@@ -508,6 +514,18 @@
         statusNFTs.textContent = '❌ ' + e.message;
       }
     }
+    const modal = document.getElementById('modal');
+    const modalImg = document.getElementById('modal-img');
+
+    modal.addEventListener('click', () => {
+      modal.style.display = 'none';
+      modalImg.src = '';
+    });
+
   </script>
+  <div id="modal">
+    <img id="modal-img" src="">
+  </div>
+
 </body>
 </html>
