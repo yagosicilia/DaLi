@@ -33,7 +33,6 @@
     </section>
 
     <!-- ② MIS NFTs -->
-<!-- ② MIS NFTs -->
     <section id="misnfts" class="seccion">
       <div style="display: flex; justify-content: flex-end; align-items: center;">
         <button id="misnfts-refrescar" title="Recargar" class="btn-recargar">🔄</button>
@@ -48,31 +47,55 @@
 
     <!-- ③ SUBIR -->
     <section id="subir" class="seccion">
-      <h2>Registrar una Obra como NFT</h2>
+      <div class="upload-wrapper">
+        <button id="btnRegistrar" class="btn-registrar" style="display: none;">Registrar Obra</button>
+        <button id="btnRecargarSubir" class="btn-recargar" style="display: none;" title="Recargar">🔄</button>
 
-      <form id="formRegistro" style="margin-top:20px">
-        <label for="archivo">Seleccionar imagen:</label><br>
-        <input type="file" id="archivo" required><br><br>
-        <button type="button" id="btnRegistrar">Registrar Obra</button>
-      </form>
 
-      <div id="respuesta"></div>
+        <!-- Subida -->
+        <label class="upload-box" id="upload-box">
+          <input type="file" id="archivo" accept="image/*" hidden />
+          <img id="preview" />
+          <span id="placeholder">Haz click para subir tu imagen</span>
+        </label>
+
+        <!-- Resultado -->
+        <div id="respuesta" class="resultado-obra"></div>
+      </div>
     </section>
+
+
+
 
     <!-- ④ TRANSFERIR -->
     <section id="transferir" class="seccion">
-      <h2>Transferir Obra</h2>
-      <form id="formTransferir">
-        <label for="transfer-tokenId">Token ID:</label><br>
-        <input type="number" id="transfer-tokenId" placeholder="Ej. 1" required><br><br>
-
-        <label for="transfer-address">Destino (usuario, ENS o 0x):</label><br>
-        <input type="text" id="transfer-address" placeholder="Rodri o 0x123…" required><br><br>
-
-        <button type="button" id="btnTransferir">Transferir NFT</button>
+      <form id="formBuscarUsuario">
+        <label for="nombre-usuario">Nombre del destinatario:</label>
+        <input type="text" id="nombre-usuario" placeholder="Ej. Rodri" required>
+        <button type="submit">Buscar</button>
+        <p id="estado-busqueda" style="color:red;"></p>
       </form>
-      <div id="transfer-status" style="margin-top:12px"></div>
     </section>
+
+    <!-- Modal para selección de obra -->
+    <div id="modal-nfts" class="modal-nfts">
+      <div class="modal-contenido">
+        <span id="cerrar-modal" class="cerrar-modal">×</span>
+
+        <div id="bloque-transferencia" style="display: none;">
+          <h3>Selecciona la obra que quieres transferir</h3>
+          <div id="galeria-nfts" class="galeria-nfts"></div>
+          <div style="text-align: center; margin-top: 20px;">
+            <button id="confirmarTransferencia" class="btn-transferir">Transferir</button>
+          </div>
+          <p id="estado-transferencia"></p>
+        </div>
+
+        <p id="cargando-nfts" style="color: gray; font-size: 18px;">Cargando obras…</p>
+      </div>
+    </div>
+
+
 
     <!-- ⑤ SUBASTAS -->
     <section id="subastas" class="seccion">
@@ -168,93 +191,254 @@
     }
 
     /* ================== SUBIR / MINT ================== */
-    const btnConectar = document.getElementById('btnConectar');
-    btnConectar.addEventListener('click', async () => {
-      try {
-        await asegurarConexion();
-        const cuenta = (await window.ethereum.request({ method: 'eth_accounts' }))[0];
-        if (cuenta.toLowerCase() !== walletDelUsuario.toLowerCase()) {
-          alert('La cuenta conectada no coincide con la registrada.');
-          return;
-        }
-        alert('MetaMask conectado correctamente.');
-      } catch (e) { alert('Error MetaMask: ' + e.message); }
+    const archivoInput = document.getElementById('archivo');
+    const preview = document.getElementById('preview');
+    const placeholder = document.getElementById('placeholder');
+    const uploadBox = document.getElementById('upload-box');
+
+    // Mostrar vista previa y ocultar borde y texto
+    archivoInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        uploadBox.style.border = 'none'; // Oculta borde
+        uploadBox.style.background = 'none';
+        btnRegistrar.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
     });
 
-    const btnRegistrar = document.getElementById('btnRegistrar');
-    const respuesta    = document.getElementById('respuesta');
-
+    // Registrar NFT
     btnRegistrar.addEventListener('click', async () => {
-      const file = document.getElementById('archivo').files[0];
-      if (!autor || !file) { alert('Completa autor + archivo'); return; }
+      const file = archivoInput.files[0];
+      if (!autor || !file) {
+        alert('Completa autor + archivo');
+        return;
+      }
+
+      const overlay = document.getElementById('overlay-cargando');
+      overlay.style.display = 'flex'; // ⏳ Muestra el overlay
 
       try {
-        respuesta.textContent = 'Subiendo a IPFS…';
         const fd = new FormData();
         fd.append('autor', autor);
         fd.append('miArchivo', file);
+
         const r = await fetch('/subir-archivo', { method: 'POST', body: fd });
-        if (!r.ok) throw new Error('Upload falló');
-        const { tokenURI } = await r.json();
+        if (!r.ok) throw new Error('Error subiendo a IPFS');
 
-        respuesta.textContent = 'Firmando mint…';
+        const { tokenURI, id } = await r.json();// ← asegúrate que devuelves el ID
         const { nftInst } = await signerYContratos();
-        const tx = await nftInst.registrarObra(tokenURI);
-        await tx.wait();
 
-        respuesta.innerHTML =
-          `✅ Mint OK <a target="_blank" href="https://sepolia.etherscan.io/tx/${tx.hash}">
-             ${tx.hash.slice(0,10)}…</a>`;
+        const tx = await nftInst.registrarObra(tokenURI);
+        const receipt = await tx.wait();
+
+        // Buscar el tokenId en los logs del evento Transfer
+        let tokenId = null;
+        for (const log of receipt.logs) {
+          try {
+            const parsed = nftInst.interface.parseLog(log);
+            if (parsed.name === 'Transfer') {
+              tokenId = parsed.args.tokenId.toString();
+              break;
+            }
+          } catch {}
+        }
+
+
+        // ✅ Resultado limpio
+        respuesta.innerHTML = `
+          <div class="resultado-obra">
+            <h3>✅ Obra registrada correctamente</h3>
+            <img src="${preview.src}" alt="Preview de la obra" />
+            <p><strong>ID:</strong> ${tokenId ?? 'No detectado'}</p>
+            <a href="${tokenURI}" target="_blank">Ver imagen en IPFS</a><br>
+            <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank">
+              Ver transacción en Etherscan
+            </a>
+          </div>
+        `;
+
+
+        // Reset visual
+        document.getElementById('upload-box')?.remove();
+        placeholder?.remove();
+        btnRegistrar.style.display = 'none';
+        btnRecargarSubir.style.display = 'block';;
       } catch (e) {
         console.error(e);
         respuesta.textContent = '❌ ' + e.message;
+      } finally {
+        overlay.style.display = 'none'; // ❌ Oculta overlay
       }
     });
+    const btnRecargarSubir = document.getElementById('btnRecargarSubir');
+
+    btnRecargarSubir.addEventListener('click', () => {
+      // Oculta el botón de recargar
+      btnRecargarSubir.style.display = 'none';
+
+      // Restablece el área de carga
+      archivoInput.value = '';
+      preview.src = '';
+      preview.style.display = 'none';
+      placeholder.style.display = 'inline';
+      uploadBox.style.display = 'flex';
+      uploadBox.style.border = '2px dashed #888';
+      uploadBox.style.background = '#fafafa';
+
+      // Limpia respuesta e interfaz
+      respuesta.innerHTML = '';
+
+      // Muestra de nuevo el botón de registrar
+      btnRegistrar.style.display = 'none';
+    });
+
+
+
 
     /* ================== TRANSFERENCIA ================== */
-    const btnTransferir  = document.getElementById('btnTransferir');
-    const transferStatus = document.getElementById('transfer-status');
+    const formBuscar = document.getElementById('formBuscarUsuario');
+    const inputNombre = document.getElementById('nombre-usuario');
+    const estadoBusqueda = document.getElementById('estado-busqueda');
+    const modalTransferir = document.getElementById('modal-nfts');
+    const galeria = document.getElementById('galeria-nfts');
+    const btnCerrar = document.getElementById('cerrar-modal');
+    const btnTransferir = document.getElementById('confirmarTransferencia');
+    const estadoTransferencia = document.getElementById('estado-transferencia');
 
-    btnTransferir.addEventListener('click', async () => {
-      const tokenIdStr = document.getElementById('transfer-tokenId').value.trim();
-      const destInput  = document.getElementById('transfer-address').value.trim();
+    let walletDestino = null;
+    let obraSeleccionada = null;
 
-      if (!tokenIdStr || isNaN(tokenIdStr) || BigInt(tokenIdStr) < 0n) {
-        alert('Token ID inválido'); return;
-      }
-      await asegurarConexion();
+    formBuscar.addEventListener('submit', async e => {
+      const cargandoMsg = document.getElementById('cargando-nfts');
+      const bloqueTransferencia = document.getElementById('bloque-transferencia');
 
-      /* --- resolver destino --- */
-      let destAddr = ethers.isAddress(destInput) ? destInput : null;
-      if (!destAddr) {                    // buscar alias backend
-        try {
-          const resp = await fetch(`/wallet/${encodeURIComponent(destInput)}`);
-          if (resp.ok) destAddr = (await resp.json()).walletAddress;
-        } catch {}
-      }
-      if (!destAddr) {                    // ENS
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        destAddr = await provider.resolveName(destInput);
-      }
-      if (!destAddr) { alert('No se pudo resolver el destino'); return; }
+      e.preventDefault();
+      cargandoMsg.style.display = 'block';
+      bloqueTransferencia.style.display = 'none';
 
-      /* --- enviar --- */
+      const nombre = inputNombre.value.trim();
+      estadoBusqueda.textContent = '';
+      galeria.innerHTML = '';
+      obraSeleccionada = null;
+
       try {
-        transferStatus.textContent = 'Enviando transacción…';
-        const { signer, nftInst } = await signerYContratos();
-        const tx = await nftInst['safeTransferFrom(address,address,uint256)'](
-          await signer.getAddress(), destAddr, BigInt(tokenIdStr)
-        );
-        await tx.wait();
-        transferStatus.innerHTML =
-          `✅ Transferido a ${destInput} (<a target="_blank"
-            href="https://sepolia.etherscan.io/tx/${tx.hash}">
-            ${tx.hash.slice(0,10)}…</a>)`;
-      } catch (e) {
-        console.error(e);
-        transferStatus.textContent = '❌ ' + (e.reason || e.message);
+        const r = await fetch(`/wallet/${nombre}`);
+        if (!r.ok) throw new Error('No encontrado');
+        const { walletAddress } = await r.json();
+        walletDestino = walletAddress;
+        modalTransferir.style.display = 'flex';
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contrato = new ethers.Contract(NFT_ADDR, nftABI, provider);
+        const signer = await provider.getSigner();
+        const myAddr = await signer.getAddress();
+
+        const obras = [];
+        const maxId = await hallarMaxTokenId(contrato);
+        for (let id = 1n; id <= maxId; id++) {
+          try {
+            const owner = await contrato.ownerOf(id);
+            if (owner.toLowerCase() === myAddr.toLowerCase()) {
+              const uri = await contrato.tokenURI(id);
+              const meta = await fetch(uri).then(r => r.json());
+              obras.push({ id, image: meta.image });
+            }
+          } catch {}
+        }
+
+        obras.sort((a, b) => Number(b.id) - Number(a.id));
+
+        for (const { id, image } of obras) {
+          const contenedor = document.createElement('div');
+          contenedor.className = 'nft-img-container';
+
+          const idSpan = document.createElement('span');
+          idSpan.className = 'nft-id';
+          idSpan.textContent = `ID ${id}`;
+
+          const img = document.createElement('img');
+          img.src = image;
+          img.title = `ID ${id}`;
+          img.classList.add('nft-image');
+
+          img.addEventListener('click', () => {
+            document.querySelectorAll('.galeria-nfts .nft-img-container')
+              .forEach(c => c.classList.remove('seleccionado'));
+            contenedor.classList.add('seleccionado');
+            obraSeleccionada = id;
+          });
+
+          contenedor.appendChild(idSpan);
+          contenedor.appendChild(img);
+          galeria.appendChild(contenedor);
+        }
+
+        // ✅ Muestra la galería cuando termina
+        cargandoMsg.style.display = 'none';
+        bloqueTransferencia.style.display = 'block';
+
+      } catch {
+        cargandoMsg.style.display = 'none';
+        estadoBusqueda.textContent = '❌ Usuario no encontrado o sin wallet';
       }
     });
+
+
+
+    btnCerrar.addEventListener('click', () => {
+      modalTransferir.style.display = 'none';
+      galeria.innerHTML = '';
+      obraSeleccionada = null;
+      estadoTransferencia.textContent = '';
+    });
+
+    btnTransferir.addEventListener('click', async () => {
+      if (!obraSeleccionada || !walletDestino) return;
+      try {
+        const overlay = document.getElementById('overlay-transferencia');
+        overlay.style.display = 'flex'; // Muestra pantalla de carga
+
+        const { signer, nftInst } = await signerYContratos();
+        const tx = await nftInst['safeTransferFrom(address,address,uint256)'](
+          await signer.getAddress(), walletDestino, BigInt(obraSeleccionada)
+        );
+        await tx.wait();
+
+        overlay.style.display = 'none'; // Oculta carga
+
+        // Cierra el modal
+        modalTransferir.style.display = 'none';
+
+        // Limpia campos
+        inputNombre.value = '';
+        estadoBusqueda.textContent = '';
+        estadoTransferencia.textContent = '';
+        galeria.innerHTML = '';
+        obraSeleccionada = null;
+
+        alert('✅ Transferencia completada con éxito');
+      } catch (e) {
+        console.error(e);
+        document.getElementById('overlay-transferencia').style.display = 'none';
+        estadoTransferencia.textContent = '❌ ' + (e.reason || e.message);
+      }
+    });
+    btnCerrar.addEventListener('click', () => {
+      modalTransferir.style.display = 'none';
+      galeria.innerHTML = '';
+      obraSeleccionada = null;
+      estadoTransferencia.textContent = '';
+    });
+
+
+
 
     /* ================== SUBASTAS ================== */
     const btnCrearAuc  = document.getElementById('btnCrearAuc');
@@ -526,6 +710,14 @@
   <div id="modal">
     <img id="modal-img" src="">
   </div>
+  <!-- Modal de carga -->
+  <div id="overlay-cargando">
+    <div class="spinner"></div>
+  </div>
+  <div id="overlay-transferencia">
+    <div class="spinner"></div>
+  </div>
+
 
 </body>
 </html>
