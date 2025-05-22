@@ -1,7 +1,7 @@
 body {
     font-family: sans-serif;
     margin: 0;
-    background-color: #f9f9f9;
+    background-color: #c4c2c2;
   }
   
   nav {
@@ -404,4 +404,29 @@ body {
   border: 3px solid #4CAF50;
   box-shadow: 0 0 10px #4CAF50;
   border-radius: 8px;
+}
+
+.bigote-contenedor {
+  position: relative;
+  text-align: center;
+}
+
+.bigote-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.texto-dentro-bigote {
+  position: absolute;
+  top: 30%; /* Ajusta según el espacio del bigote */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  color: #222;
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 500;
+  text-shadow: 0 0 5px white; /* mejora contraste si imagen oscura */
 }

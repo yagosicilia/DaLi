@@ -29,8 +29,15 @@
   <main>
     <!-- ① INICIO -->
     <section id="inicio" class="seccion activa">
-      <p>Selecciona una sección del menú para comenzar.</p>
+      <div class="bigote-contenedor">
+        <img src="/bigote-dali.png" alt="Bigote de Dalí de colores" class="bigote-img" />
+        <div class="texto-dentro-bigote">
+          <p>Registra, protege y transfiere tus obras digitales con tecnología blockchain.</p>
+          <p>Conecta tu wallet, sube tus creaciones y conviértelas en NFTs únicos y verificables.</p>
+        </div>
+      </div>
     </section>
+
 
     <!-- ② MIS NFTs -->
     <section id="misnfts" class="seccion">
@@ -172,7 +179,9 @@
     let auctionInst = null;
     let metamaskOK  = false;
 
-    /* ---------- Helpers ---------- */
+
+    let solicitandoConexion = false;
+
     async function asegurarConexion () {
       if (!window.ethereum) throw new Error('MetaMask no detectado');
       const accs = await window.ethereum.request({ method: 'eth_accounts' });
@@ -189,6 +198,33 @@
         auctionInst = new ethers.Contract(AUCTION_ADDR, auctionABI, signer);
       return { signer, nftInst };
     }
+
+
+
+    btnConectar.addEventListener('click', async () => {
+      if (solicitandoConexion) return;
+
+      try {
+        solicitandoConexion = true;
+        btnConectar.disabled = true;
+        btnConectar.textContent = 'Conectando...';
+
+        await asegurarConexion(); // ✅ usa la función unificada
+
+        const cuentas = await window.ethereum.request({ method: 'eth_accounts' });
+        alert(`🦊 MetaMask conectada: ${cuentas[0]}`);
+
+        btnConectar.textContent = 'Conectado ✅';
+        btnConectar.disabled = true;
+      } catch (err) {
+        alert('❌ Error al conectar MetaMask: ' + err.message);
+        btnConectar.textContent = 'Conectar MetaMask';
+        btnConectar.disabled = false;
+      } finally {
+        solicitandoConexion = false;
+      }
+    });
+
 
     /* ================== SUBIR / MINT ================== */
     const archivoInput = document.getElementById('archivo');
