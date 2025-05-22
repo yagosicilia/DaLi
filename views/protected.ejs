@@ -106,42 +106,54 @@
 
     <!-- ⑤ SUBASTAS -->
     <section id="subastas" class="seccion">
-      <h2>Subastas</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button id="abrirCrearSubasta">➕ Crear subasta</button>
+        <button id="btnAucRefresh" class="btn-recargar" title="Recargar">🔄</button>
+      </div>
 
-      <!-- Crear -->
-      <details open>
-        <summary>Crear subasta</summary>
-        <label>Token ID: <input type="number" id="auc-token" min="0"></label>
-        <label>Precio mínimo (ETH): <input type="number" id="auc-min" min="0" step="0.001"></label>
-        <label>Duración:
-          <input type="number" id="auc-h" min="0" value="0" style="width:60px"> h
-          <input type="number" id="auc-m" min="0" max="59" value="0" style="width:60px"> m
-          <input type="number" id="auc-s" min="0" max="59" value="30" style="width:60px"> s
-        </label>
-        <button id="btnCrearAuc">Crear subasta</button>
-        <p id="auc-create-status"></p>
-      </details>
-
-      <hr>
-
-      <!-- Pujar / finalizar -->
-      <details>
-        <summary>Pujar o finalizar</summary>
-        <label>Token ID: <input type="number" id="bid-token" min="0"></label>
-        <label>Tu puja (ETH): <input type="number" id="bid-amt" min="0" step="0.001"></label>
-        <button id="btnPujar">Pujar</button>
-  
-        <p id="bid-status"></p>
-      </details>
-
-      <h3 style="margin-top:2rem">Subastas activas</h3>
-      <p id="auc-status">Pulsa “Actualizar subastas” para refrescar.</p>
-      <button id="btnAucRefresh">Actualizar subastas</button>
-
+      <p id="auc-status" style="margin-top: 0;">&nbsp;</p>
       <div id="auc-grid"
-           style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
-                  gap:14px;margin-top:16px;"></div>
+          style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top:16px;">
+      </div>
+
+      <!-- Modal unificado para crear subasta -->
+      <div id="modal-elegir-nft" class="modal-nfts">
+        <div class="modal-contenido">
+          <span id="cerrar-modal-elegir-nft" class="cerrar-modal">×</span>
+          <h3>Crear Subasta</h3>
+          
+          <p>Selecciona tu NFT:</p>
+          <div id="galeria-elegir-nft" class="galeria-nfts" style="margin-bottom: 20px;"></div>
+          <p id="cargando-nfts-subasta" style="color:gray;font-size:16px;">Cargando obras…</p>
+
+          <label>Precio mínimo (ETH): <input type="number" id="auc-min" min="0" step="0.001"></label><br>
+          <label>Duración:
+            <input type="number" id="auc-h" min="0" value="0" style="width:60px"> h
+            <input type="number" id="auc-m" min="0" max="59" value="0" style="width:60px"> m
+            <input type="number" id="auc-s" min="0" max="59" value="30" style="width:60px"> s
+          </label><br><br>
+
+          <button id="btnCrearAucModal">Crear subasta</button>
+          <div id="spinner-subasta" class="spinner" style="display: none; margin: 20px auto;"></div>
+          <p id="auc-create-status"></p>
+        </div>
+      </div>
+
+
+      <!-- Modal para pujar -->
+      <div id="modal-puja" class="modal-nfts">
+        <div class="modal-contenido">
+          <span id="cerrar-modal-puja" class="cerrar-modal">×</span>
+          <h3>Realizar Puja</h3>
+          <label>Token ID: <input type="number" id="puja-token" readonly></label><br>
+          <label>Tu puja (ETH): <input type="number" id="puja-eth" step="0.001"></label><br><br>
+          <button id="btnConfirmarPuja">Confirmar Pujar</button>
+          <div id="spinner-puja" class="spinner" style="display: none; margin: 20px auto;"></div>
+          <p id="puja-status"></p>
+        </div>
+      </div>
     </section>
+
   </main>
 
   <!-- ============================== SCRIPTS ============================== -->
@@ -409,6 +421,7 @@
               .forEach(c => c.classList.remove('seleccionado'));
             contenedor.classList.add('seleccionado');
             obraSeleccionada = id;
+            console.log('Obra seleccionada para subasta:', obraElegidaParaSubasta);
           });
 
           contenedor.appendChild(idSpan);
@@ -476,20 +489,99 @@
 
 
 
+
     /* ================== SUBASTAS ================== */
-    const btnCrearAuc  = document.getElementById('btnCrearAuc');
-    const btnPujar     = document.getElementById('btnPujar');
+    const btnCrearAuc = document.getElementById('btnCrearAucModal');
+    const btnPujar = document.getElementById('btnPujar');
+    const modalPuja = document.getElementById('modal-puja');
+    const cerrarModalPuja = document.getElementById('cerrar-modal-puja');
+    const inputTokenPuja = document.getElementById('puja-token');
+    const inputEthPuja = document.getElementById('puja-eth');
+    const btnConfirmarPuja = document.getElementById('btnConfirmarPuja');
+    const statusPuja = document.getElementById('puja-status');
+    const modalElegir = document.getElementById('modal-elegir-nft');
+    const cerrarElegir = document.getElementById('cerrar-modal-elegir-nft');
+    const galeriaElegir = document.getElementById('galeria-elegir-nft');
+    const cargandoElegir = document.getElementById('cargando-nfts-subasta');
+    const spinnerSubasta = document.getElementById('spinner-subasta');
+    const aucSt = document.getElementById('auc-create-status');
 
-    const aucSt     = document.getElementById('auc-create-status');
-    const bidSt     = document.getElementById('bid-status');
-    const aucGrid   = document.getElementById('auc-grid');
+    let obraElegidaParaSubasta = null;
+
+    // Abrir modal de subasta
+    document.getElementById('abrirCrearSubasta')?.addEventListener('click', async () => {
+      modalElegir.style.display = 'flex';
+      cargandoElegir.style.display = 'block';
+      galeriaElegir.innerHTML = '';
+      aucSt.textContent = '';
+      obraElegidaParaSubasta = null;
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const contrato = new ethers.Contract(NFT_ADDR, nftABI, provider);
+      const signer = await provider.getSigner();
+      const myAddr = await signer.getAddress();
+
+      const obras = [];
+      const maxId = await hallarMaxTokenId(contrato);
+      for (let id = maxId; id >= 1n; id--) {
+        try {
+          const owner = await contrato.ownerOf(id);
+          if (owner.toLowerCase() === myAddr.toLowerCase()) {
+            const uri = await contrato.tokenURI(id);
+            const meta = await fetch(uri).then(r => r.json());
+            obras.push({ id, image: meta.image });
+          }
+        } catch {}
+      }
+
+      for (const { id, image } of obras) {
+        const contenedor = document.createElement('div');
+        contenedor.className = 'nft-img-container';
+
+        const idSpan = document.createElement('span');
+        idSpan.className = 'nft-id';
+        idSpan.textContent = `ID ${id}`;
+
+        const img = document.createElement('img');
+        img.src = image;
+        img.classList.add('nft-image');
+
+        img.addEventListener('click', () => {
+          document.querySelectorAll('#galeria-elegir-nft .nft-img-container')
+            .forEach(c => c.classList.remove('seleccionado'));
+          contenedor.classList.add('seleccionado');
+          obraElegidaParaSubasta = id;
+        });
+
+        contenedor.appendChild(idSpan);
+        contenedor.appendChild(img);
+        galeriaElegir.appendChild(contenedor);
+      }
+
+      cargandoElegir.style.display = 'none';
+    });
+
+    cerrarElegir.addEventListener('click', () => {
+      modalElegir.style.display = 'none';
+      galeriaElegir.innerHTML = '';
+      obraElegidaParaSubasta = null;
+      aucSt.textContent = '';
+    });
+
+    cerrarModalPuja.addEventListener('click', () => {
+      modalPuja.style.display = 'none';
+      inputEthPuja.value = '';
+      statusPuja.textContent = '';
+    });
+
+    const bidSt = document.getElementById('bid-status');
+    const aucGrid = document.getElementById('auc-grid');
     const aucStatus = document.getElementById('auc-status');
-    document.getElementById('btnAucRefresh')
-            .addEventListener('click', cargarSubastas);
+    document.getElementById('btnAucRefresh')?.addEventListener('click', cargarSubastas);
 
-    const tNow  = () => Math.floor(Date.now() / 1000);
+    const tNow = () => Math.floor(Date.now() / 1000);
     const short = a => a.slice(0,6) + '…' + a.slice(-4);
-    const left  = ts => {
+    const left = ts => {
       const s = ts - tNow();
       if (s <= 0) return 'cerrada';
       const h = Math.floor(s / 3600);
@@ -497,161 +589,196 @@
       return `${h} h ${m} m`;
     };
 
-    /* ---------- resolver alias (addr → nombre) ---------- */
     const aliasCache = {};
-
     async function aliasDe(addr) {
       addr = addr.toLowerCase();
-      if (aliasCache[addr]) return aliasCache[addr];      // hit caché
-
-      const r = await fetch(`/alias/${addr.toLowerCase()}`); // está bien
+      if (aliasCache[addr]) return aliasCache[addr];
+      const r = await fetch(`/alias/${addr}`);
       if (!r.ok) return null;
       const { username } = await r.json();
-      if (username) aliasCache[addr] = username;          // guarda solo si existe
+      if (username) aliasCache[addr] = username;
       return username || null;
     }
 
-    async function cargarSubastas () {
+    async function cargarSubastas() {
       try {
         aucStatus.textContent = 'Buscando subastas en la cadena…';
         aucGrid.innerHTML = '';
 
         const { nftInst: nft } = await signerYContratos();
         const auc = auctionInst;
-
-        /* ① Todos los AuctionCreated (del más nuevo al más viejo) */
         const events = (await auc.queryFilter(auc.filters.AuctionCreated())).reverse();
+          console.log("Eventos encontrados:", events.length);
+          console.log("Ejemplo evento:", events[0]?.args);
         if (events.length === 0) {
           aucStatus.textContent = 'No hay subastas creadas todavía.';
           return;
         }
 
-        const vistos = new Set();                       // evita duplicados
-
+        const vistos = new Set();
         for (const ev of events) {
-          const tokenId   = ev.args[0];
+          const tokenId = ev.args[0];
           const minBidWei = ev.args[2];
-
-          if (vistos.has(tokenId)) continue;            // ya pintamos este NFT
+          if (vistos.has(tokenId)) continue;
           vistos.add(tokenId);
 
           const lot = await auc.lots(tokenId);
-          if (lot.endTime === 0n) continue;             // lote vacío
+          if (lot.endTime === 0n) continue;
 
           const vencida = Number(lot.endTime) < tNow();
-          if (vencida) {                                // auto-finalizar
-            try { await (await auc.finalize(tokenId)).wait(); }
-            catch {}
+          if (vencida) {
+            try { await (await auc.finalize(tokenId)).wait(); } catch {}
             continue;
           }
 
-          /* --------- METADATOS DEL NFT --------- */
           let image = '', title = `Token ${tokenId}`;
           try {
-            const uri  = await nft.tokenURI(tokenId);
+            const uri = await nft.tokenURI(tokenId);
             const meta = await fetch(uri).then(r => r.json());
             image = meta.image || '';
-            title = meta.name  || title;
-          } catch {/* silenciamos errores de tokenURI */}
+            title = meta.name || title;
+          } catch {}
 
-          /* --------- TARJETA VISUAL --------- */
           const card = document.createElement('div');
-          card.style.cssText =
-            'border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center';
-          const nombreVend  = (await aliasDe(lot.seller))   || short(lot.seller);
-          const nombreBidder = lot.highBidder === ethers.ZeroAddress
-                ? '—'
-                : (await aliasDe(lot.highBidder)) || short(lot.highBidder);
+          card.style.cssText = 'border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center';
+          const nombreVend = (await aliasDe(lot.seller)) || short(lot.seller);
+          const nombreBidder = lot.highBidder === ethers.ZeroAddress ? '—' : (await aliasDe(lot.highBidder)) || short(lot.highBidder);
 
           card.innerHTML = `
-            <img src="${image}"
-                style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px">
-            <h4 style="margin:6px 0">${title}</h4>
+            <img src="${image}" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px">
+            <h4 style="margin:6px 0">ID ${tokenId}</h4>
             <p style="font-size:13px;line-height:1.25">
               Precio inicial: ${ethers.formatEther(minBidWei)} ETH<br>
-              Mejor puja: ${nombreBidder === '—'
-                ? '—'
-                : `${ethers.formatEther(lot.highBid)} ETH por ${nombreBidder}`}<br>
+              Mejor puja: ${nombreBidder === '—' ? '—' : `${ethers.formatEther(lot.highBid)} ETH por ${nombreBidder}`}<br>
               Vendedor: ${nombreVend}<br>
               Termina en: ${left(Number(lot.endTime))}
             </p>
-            <button style="width:100%;margin-top:4px"
-                    onclick="prefillBid(${tokenId})">
-              Pujar
-            </button>`;
+            <button style="width:100%;margin-top:4px" onclick="prefillBid(${tokenId})">Pujar</button>`;
 
           aucGrid.appendChild(card);
         }
 
-        aucStatus.textContent = aucGrid.childElementCount
-          ? ''
-          : 'No hay subastas activas.';
+        aucStatus.textContent = aucGrid.childElementCount ? '' : 'No hay subastas activas.';
       } catch (err) {
         console.error(err);
         aucStatus.textContent = '❌ ' + (err.message || err);
       }
     }
 
-
-
-
     window.prefillBid = id => {
-      document.getElementById('bid-token').value = id;
-      document.querySelectorAll('details')[0].open = false;
-      document.querySelectorAll('details')[1].open = true;
+      inputTokenPuja.value = id;
+      inputEthPuja.value = '';
+      statusPuja.textContent = '';
+      modalPuja.style.display = 'flex';
     };
 
+    
+    btnConfirmarPuja?.addEventListener('click', async () => {
+      const spinner = document.getElementById('spinner-puja');
+      try {
+        const tokenId = BigInt(inputTokenPuja.value);
+        const eth = +inputEthPuja.value;
+
+        if (!eth || eth <= 0) throw new Error('Introduce una cantidad válida');
+
+        await asegurarConexion();
+        statusPuja.textContent = 'Enviando puja…';
+        spinner.style.display = 'block';
+        btnConfirmarPuja.disabled = true;
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const tx = await auctionInst.bid(tokenId, { value: ethToWei(eth) });
+        await tx.wait();
+
+        statusPuja.innerHTML = `✅ Puja aceptada (<a target="_blank" href="https://sepolia.etherscan.io/tx/${tx.hash}">${tx.hash.slice(0, 10)}…</a>)`;
+
+        setTimeout(() => {
+          modalPuja.style.display = 'none';
+          inputEthPuja.value = '';
+          statusPuja.textContent = '';
+          spinner.style.display = 'none';
+          btnConfirmarPuja.disabled = false;
+          cargarSubastas();
+        }, 1500);
+      } catch (e) {
+        console.error(e);
+        statusPuja.textContent = '❌ ' + (e.reason || e.message);
+        spinner.style.display = 'none';
+        btnConfirmarPuja.disabled = false;
+      }
+    });
+
+
     cargarSubastas();
-    cargarMisNFTs();
+
+
+    
 
     /* ---------- crear subasta ---------- */
     btnCrearAuc.addEventListener('click', async () => {
+      const minEthStr = document.getElementById('auc-min').value.trim();
+      const h = +document.getElementById('auc-h').value;
+      const m = +document.getElementById('auc-m').value;
+      const s = +document.getElementById('auc-s').value;
+      const durSec = h * 3600 + m * 60 + s;
+
+      if (!obraElegidaParaSubasta || durSec < 1 || !/^\d*\.?\d+$/.test(minEthStr)) {
+        aucSt.textContent = '❌ Datos inválidos. Asegúrate de seleccionar un NFT y completar los campos.';
+        return;
+      }
+
       try {
-        const tokenId = BigInt(document.getElementById('auc-token').value);
-        const minEthStr = document.getElementById('auc-min').value.trim();
-        const h = +document.getElementById('auc-h').value;
-        const m = +document.getElementById('auc-m').value;
-        const s = +document.getElementById('auc-s').value;
-        const durSec = h*3600 + m*60 + s;
-
-        if (tokenId < 0n || durSec < 1 || !/^\d*\.?\d+$/.test(minEthStr))
-          throw new Error('Datos inválidos (comprueba duración y precio)');
-
         const minWei = ethers.parseEther(minEthStr);
+        spinnerSubasta.style.display = 'block';
+        btnCrearAuc.disabled = true;
+        aucSt.textContent = 'Creando subasta…';
 
         const { signer, nftInst } = await signerYContratos();
         if (!(await nftInst.isApprovedForAll(await signer.getAddress(), AUCTION_ADDR))) {
-          aucSt.textContent = 'Aprobando contrato…';
           await (await nftInst.setApprovalForAll(AUCTION_ADDR, true)).wait();
         }
 
-        aucSt.textContent = 'Creando subasta…';
-        const tx = await auctionInst.createAuction(tokenId, minWei, durSec);
+        const tx = await auctionInst.createAuction(obraElegidaParaSubasta, minWei, durSec);
         await tx.wait();
-        aucSt.innerHTML =
-          `✅ Subasta creada (<a target="_blank"
-            href="https://sepolia.etherscan.io/tx/${tx.hash}">
-            ${tx.hash.slice(0,10)}…</a>)`;
-      } catch (e) { aucSt.textContent = '❌ ' + (e.reason || e.message); }
+
+        aucSt.innerHTML = `✅ Subasta creada (<a target="_blank"
+          href="https://sepolia.etherscan.io/tx/${tx.hash}">
+          ${tx.hash.slice(0, 10)}…</a>)`;
+
+        setTimeout(() => {
+          modalElegir.style.display = 'none';
+          spinnerSubasta.style.display = 'none';
+          btnCrearAuc.disabled = false;
+          cargarSubastas();
+        }, 1500);
+      } catch (e) {
+        console.error(e);
+        aucSt.textContent = '❌ ' + (e.reason || e.message);
+        spinnerSubasta.style.display = 'none';
+        btnCrearAuc.disabled = false;
+      }
     });
 
     /* ---------- pujar ---------- */
-    btnPujar.addEventListener('click', async () => {
-      try {
-        const tokenId = BigInt(document.getElementById('bid-token').value);
-        const eth     = +document.getElementById('bid-amt').value;
-        if (tokenId < 0n || eth <= 0) throw new Error('Datos inválidos');
+    if (btnPujar){
+      btnPujar.addEventListener('click', async () => {
+        try {
+          const tokenId = BigInt(document.getElementById('bid-token').value);
+          const eth     = +document.getElementById('bid-amt').value;
+          if (tokenId < 0n || eth <= 0) throw new Error('Datos inválidos');
 
-        await signerYContratos();
-        bidSt.textContent = 'Enviando puja…';
-        const tx = await auctionInst.bid(tokenId, { value: ethToWei(eth) });
-        await tx.wait();
-        bidSt.innerHTML =
-          `✅ Puja aceptada (<a target="_blank"
-            href="https://sepolia.etherscan.io/tx/${tx.hash}">
-            ${tx.hash.slice(0,10)}…</a>)`;
-      } catch (e) { bidSt.textContent = '❌ ' + (e.reason || e.message); }
-    });
+          await signerYContratos();
+          bidSt.textContent = 'Enviando puja…';
+          const tx = await auctionInst.bid(tokenId, { value: ethToWei(eth) });
+          await tx.wait();
+          bidSt.innerHTML =
+            `✅ Puja aceptada (<a target="_blank"
+              href="https://sepolia.etherscan.io/tx/${tx.hash}">
+              ${tx.hash.slice(0,10)}…</a>)`;
+        } catch (e) { bidSt.textContent = '❌ ' + (e.reason || e.message); }
+      });
+    }
 
 
 
@@ -734,6 +861,7 @@
         statusNFTs.textContent = '❌ ' + e.message;
       }
     }
+    cargarMisNFTs();
     const modal = document.getElementById('modal');
     const modalImg = document.getElementById('modal-img');
 
