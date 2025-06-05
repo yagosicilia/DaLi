@@ -430,3 +430,51 @@ body {
   font-weight: 500;
   text-shadow: 0 0 5px white; /* mejora contraste si imagen oscura */
 }
+.fila-inicio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 40px;
+  margin: 80px auto;
+  padding: 20px;
+  border-radius: 16px;
+  background: #fefefe;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  max-width: 1100px;
+}
+
+.fila-inicio.fila-invertida {
+  flex-direction: row-reverse;
+}
+
+.fila-inicio .texto {
+  flex: 1 1 500px;
+  font-size: 18px;
+  line-height: 1.75;
+  color: #222;
+  padding: 10px 20px;
+}
+
+.fila-inicio .texto h2 {
+  font-size: 32px;
+  color: #222;
+  margin-bottom: 16px;
+  border-left: 5px solid #0077cc;
+  padding-left: 12px;
+}
+
+.fila-inicio .imagen {
+  flex: 1 1 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fila-inicio .imagen img {
+  max-width: 100%;
+  max-height: 340px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
+}
+
