@@ -6,7 +6,7 @@
   <title>Dali</title>
   <link rel="stylesheet" href="/css/styles.css" />
   <style>
-    body{font-family:sans-serif;margin:20px;background:#fff}
+    body{font-family:sans-serif;margin:20px;background:#e6e5e5f8}
     nav{margin-bottom:20px}
     nav button{margin-right:10px;padding:8px 16px;font-size:16px;cursor:pointer}
     .seccion{display:none}
@@ -27,16 +27,83 @@
   </nav>
 
   <main>
-    <!-- ① INICIO -->
     <section id="inicio" class="seccion activa">
-      <div class="bigote-contenedor">
-        <img src="/bigote-dali.png" alt="Bigote de Dalí de colores" class="bigote-img" />
-        <div class="texto-dentro-bigote">
-          <p>Registra, protege y transfiere tus obras digitales con tecnología blockchain.</p>
-          <p>Conecta tu wallet, sube tus creaciones y conviértelas en NFTs únicos y verificables.</p>
+      <!-- ① Qué es DaLi -->
+      <div class="fila-inicio">
+        <div class="texto">
+          <h2>¿Qué es DaLi?</h2>
+          <p><strong>DaLi</strong> es una plataforma Web3 pensada para creadores digitales que desean <strong>proteger, autenticar y comercializar sus obras</strong> mediante tecnología blockchain.</p>
+          <p>Permite registrar imágenes en IPFS y convertirlas en <strong>tokens NFT únicos</strong> sobre la red Ethereum (testnet Sepolia), garantizando la autoría e inmutabilidad de la obra.</p>
+        </div>
+        <div class="imagen">
+          <img src="/img/dali-presentacion.png" alt="Plataforma DaLi en uso">
         </div>
       </div>
+
+      <!-- ② Cómo funciona -->
+      <div class="fila-inicio fila-invertida">
+        <div class="imagen">
+          <img src="/img/como-funciona.png" alt="Cómo funciona DaLi">
+        </div>
+        <div class="texto">
+          <h2>¿Cómo funciona?</h2>
+          <p>1️⃣ Conectas tu wallet (MetaMask) con un clic.</p>
+          <p>2️⃣ Subes tu obra: se almacena en IPFS.</p>
+          <p>3️⃣ Se genera una metadata con enlace IPFS.</p>
+          <p>4️⃣ Se registra el NFT en la blockchain mediante un contrato inteligente.</p>
+          <p>Cada obra queda asociada a tu wallet como prueba de propiedad.</p>
+        </div>
+      </div>
+
+
+      <!-- ③ Ventajas -->
+      <div class="fila-inicio">
+        <div class="texto">
+          <h2>¿Por qué usar DaLi?</h2>
+          <p>🔐 <strong>Seguridad:</strong> nadie puede modificar o eliminar tu obra una vez registrada.<br>
+            🌐 <strong>Accesibilidad:</strong> todo el proceso ocurre desde una web intuitiva.<br>
+            🤝 <strong>Transferencia y subastas:</strong> puedes ceder o vender tus NFTs directamente.<br>
+            📜 <strong>Transparencia:</strong> cada transacción queda registrada públicamente.</p>
+        </div>
+        <div class="imagen">
+          <img src="/img/ventajas.png" alt="Ventajas de la plataforma DaLi">
+        </div>
+      </div>
+            <!-- ④ Casos de uso -->
+      <div class="fila-inicio">
+        <div class="texto">
+          <h2>¿Quién puede beneficiarse de DaLi?</h2>
+          <p>🎨 <strong>Artistas digitales:</strong> protege tus obras originales antes de compartirlas online o en redes sociales.</p>
+          <p>📷 <strong>Fotógrafos:</strong> registra tus imágenes en IPFS y asócialas a tu wallet como prueba de autoría con sello de tiempo.</p>
+        </div>
+        <div class="imagen">
+          <img src="/img/casos-uso.png" alt="Casos de uso de DaLi">
+        </div>
+      </div>
+
+            <!-- ⑤ Preguntas frecuentes -->
+      <div class="fila-inicio fila-invertida">
+        <div class="imagen">
+          <img src="/img/preguntas-frecuentes.png" alt="Preguntas frecuentes sobre DaLi">
+        </div>
+        <div class="texto">
+          <h2>Preguntas frecuentes</h2>
+          <p><strong>¿Necesito saber programar para usar DaLi?</strong><br>
+          No, la plataforma está pensada para que cualquier persona pueda registrar sus obras fácilmente.</p>
+
+          <p><strong>¿Cuánto cuesta registrar una obra?</strong><br>
+          Actualmente en la red de pruebas Sepolia es gratuito. En la red principal de Ethereum, dependerá del gas.</p>
+
+          <p><strong>¿Dónde se guarda la imagen?</strong><br>
+          Las imágenes se almacenan en IPFS, un sistema descentralizado que asegura su disponibilidad e integridad.</p>
+        </div>
+      </div>
+
+
+
     </section>
+
+
 
 
     <!-- ② MIS NFTs -->
