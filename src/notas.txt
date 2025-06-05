@@ -203,7 +203,7 @@
                 }
             }
         }
-    
+16) Me he dedicado a mejorar el frontend
 
 estado del arte funcional casos de uso en los que se use la blockchain, contar un par de casos
 capitulo 4: costes y planificacion
