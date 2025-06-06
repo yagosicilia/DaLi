@@ -1,13 +1,13 @@
-// Reemplaza require por import
+
 import dotenv from 'dotenv';
-dotenv.config();  // Importa dotenv para leer el archivo .env
+dotenv.config();  
 import express from 'express';  
 import { ethers } from 'ethers';
 import cors from 'cors';
-import contractABI from './ABI.js';  // Asegúrate de que ABI.js utilice export default o una exportación nombrada
-import uploadRoute from './upload.js';  // Asegúrate de que upload.js utilice export default o una exportación nombrada
+import contractABI from './ABI.js';  
+import uploadRoute from './upload.js';  
 
-// El resto del código permanece igual
+
 const app = express();
 app.use(cors());
 app.use(express.json());

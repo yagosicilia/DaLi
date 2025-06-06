@@ -290,7 +290,7 @@
         btnConectar.disabled = true;
         btnConectar.textContent = 'Conectando...';
 
-        await asegurarConexion(); // ✅ usa la función unificada
+        await asegurarConexion(); 
 
         const cuentas = await window.ethereum.request({ method: 'eth_accounts' });
         alert(`🦊 MetaMask conectada: ${cuentas[0]}`);
@@ -339,7 +339,7 @@
       }
 
       const overlay = document.getElementById('overlay-cargando');
-      overlay.style.display = 'flex'; // ⏳ Muestra el overlay
+      overlay.style.display = 'flex'; 
 
       try {
         const fd = new FormData();
@@ -349,7 +349,7 @@
         const r = await fetch('/subir-archivo', { method: 'POST', body: fd });
         if (!r.ok) throw new Error('Error subiendo a IPFS');
 
-        const { tokenURI, id } = await r.json();// ← asegúrate que devuelves el ID
+        const { tokenURI, id } = await r.json();
         const { nftInst } = await signerYContratos();
 
         const tx = await nftInst.registrarObra(tokenURI);
@@ -368,7 +368,7 @@
         }
 
 
-        // ✅ Resultado limpio
+        
         respuesta.innerHTML = `
           <div class="resultado-obra">
             <h3>✅ Obra registrada correctamente</h3>
@@ -382,7 +382,7 @@
         `;
 
 
-        // Reset visual
+        
         document.getElementById('upload-box')?.remove();
         placeholder?.remove();
         btnRegistrar.style.display = 'none';
@@ -391,7 +391,7 @@
         console.error(e);
         respuesta.textContent = '❌ ' + e.message;
       } finally {
-        overlay.style.display = 'none'; // ❌ Oculta overlay
+        overlay.style.display = 'none'; 
       }
     });
     const btnRecargarSubir = document.getElementById('btnRecargarSubir');
@@ -409,10 +409,10 @@
       uploadBox.style.border = '2px dashed #888';
       uploadBox.style.background = '#fafafa';
 
-      // Limpia respuesta e interfaz
+      
       respuesta.innerHTML = '';
 
-      // Muestra de nuevo el botón de registrar
+      
       btnRegistrar.style.display = 'none';
     });
 
@@ -858,8 +858,7 @@
     const statusNFTs     = document.getElementById('misnfts-status');
 
     btnRefrescar.addEventListener('click', cargarMisNFTs);
-    //document.querySelector('button[data-seccion="misnfts"]')
-    //        .addEventListener('click', cargarMisNFTs);
+
 
     async function hallarMaxTokenId (contrato) {
       let hi = 1n;
@@ -902,7 +901,7 @@
                 .map(i => contrato.tokenOfOwnerByIndex(myAddr, BigInt(i))))
           : await tokenIdsPorScan(contrato, myAddr);
 
-        ids.sort((a, b) => (a < b ? 1 : -1));   // ordena de mayor a menor  
+        ids.sort((a, b) => (a < b ? 1 : -1));     
 
         if (ids.length === 0) { statusNFTs.textContent = 'No tienes NFTs.'; return; }
 

@@ -99,17 +99,14 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 console.log("Backend listo (solo sube archivos a Pinata).");
 
-// --- lookup de wallet por nombre ---------------------------------
-// ── Lookup de wallet por nombre ──────────────────────────────────
-import { User } from './user-repository.js';   // ya existe gracias al export
+
+import { User } from './user-repository.js';   
 
 app.get('/wallet/:username', (req, res) => {
   const username = req.params.username;
 
-  //  Búsqueda exacta (may/min)       ─────┐
-  let user = User.findOne({ username });      //│
-  //  Si quieres ignorar mayúsculas   ───────┘
-  // const user = User.findOne(u => u.username.toLowerCase() === username.toLowerCase());
+
+  let user = User.findOne({ username });      
 
   if (!user) {
     return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -122,7 +119,7 @@ app.get('/alias/:addr', async (req, res) => {
   const addr = (req.params.addr || '').toLowerCase();
 
   const users = User.find(); // obtenemos todos
-  const user = users.find(u => u.walletAddress.toLowerCase() === addr);  // comparación manual
+  const user = users.find(u => u.walletAddress.toLowerCase() === addr);  
 
   if (!user) return res.status(404).json({ username: null });
   res.json({ username: user.username });
